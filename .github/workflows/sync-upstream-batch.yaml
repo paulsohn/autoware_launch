@@ -31,10 +31,7 @@ jobs:
       - name: Validate config and parse syncs
         id: validate-and-parse
         run: |
-          CONFIG_FILE="${{ vars.SYNC_UPSTREAM_CONFIG_PATH }}"
-          if [ -z "$CONFIG_FILE" ]; then
-            CONFIG_FILE=".github/upstreams.yaml"
-          fi
+          CONFIG_FILE=".github/upstreams.yaml"
 
           # Check if config file exists
           if [ ! -f "$CONFIG_FILE" ]; then
@@ -42,36 +39,28 @@ jobs:
             exit 1
           fi
 
-          # Extract base-github-repo
-          BASE_REPO=$(yq eval '.base-github-repo' "$CONFIG_FILE")
+          BASE_REPO="${{ github.repository }}"
 
-          # Validate base-github-repo exists and is a string
-          if [ "$BASE_REPO" = "null" ] || [ -z "$BASE_REPO" ]; then
-            echo "Error: base-github-repo is not set in $CONFIG_FILE"
+          # Validate repository entry exists
+          REPO_EXISTS=$(yq eval ".\"$BASE_REPO\"" "$CONFIG_FILE")
+          if [ "$REPO_EXISTS" = "null" ] || [ -z "$REPO_EXISTS" ]; then
+            echo "Error: base repo ($BASE_REPO) not found in $CONFIG_FILE"
             exit 1
           fi
-
-          # Validate base-github-repo matches github.repository
-          if [ "$BASE_REPO" != "${{ github.repository }}" ]; then
-            echo "Error: base-github-repo ($BASE_REPO) does not match github.repository (${{ github.repository }})"
-            exit 1
-          fi
-
-          echo "Validation passed: base-github-repo=$BASE_REPO"
 
           # Extract all syncs with their upstream IDs
-          SYNCS_JSON=$(yq eval -o=json '
-            [
-              .upstreams | to_entries | .[] |
-              .key as $upstream_id |
-              .value.syncs[] |
-              {
-                "upstream_id": $upstream_id,
-                "upstream_branch": .upstream,
-                "base_branch": .base
+          SYNCS_JSON=$(yq eval -o=json "
+            .\"$BASE_REPO\".upstreams
+            | to_entries
+            | .[]
+            | .key as \$upstream_id
+            | .value.syncs[]
+            | {
+                \"upstream_id\": \$upstream_id,
+                \"upstream_branch\": .upstream,
+                \"base_branch\": .base
               }
-            ]
-          ' "$CONFIG_FILE")
+          " "$CONFIG_FILE")
 
           echo "Syncs to process:"
           echo "$SYNCS_JSON" | jq .
