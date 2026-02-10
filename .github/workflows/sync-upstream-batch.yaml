@@ -1,0 +1,93 @@
+name: sync-upstream-batch
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  schedule:
+    - cron: 0 20 * * *
+
+jobs:
+  validate-config:
+    runs-on: ubuntu-latest
+    outputs:
+      syncs: ${{ steps.validate-and-parse.outputs.syncs }}
+    steps:
+      - name: Generate token
+        id: generate-token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.49.2/yq_linux_amd64
+          echo "be2c0ddcf426b6a231648610ec5d1666ae50e9f6473e82f6486f9f4cb6e3e2f7  /usr/local/bin/yq" | sha256sum -c -
+          sudo chmod a+x /usr/local/bin/yq
+
+      - name: Validate config and parse syncs
+        id: validate-and-parse
+        run: |
+          CONFIG_FILE="${{ vars.SYNC_UPSTREAM_CONFIG_PATH }}"
+          if [ -z "$CONFIG_FILE" ]; then
+            CONFIG_FILE=".github/upstreams.yaml"
+          fi
+
+          # Check if config file exists
+          if [ ! -f "$CONFIG_FILE" ]; then
+            echo "Error: Config file $CONFIG_FILE not found"
+            exit 1
+          fi
+
+          # Extract base-github-repo
+          BASE_REPO=$(yq eval '.base-github-repo' "$CONFIG_FILE")
+
+          # Validate base-github-repo exists and is a string
+          if [ "$BASE_REPO" = "null" ] || [ -z "$BASE_REPO" ]; then
+            echo "Error: base-github-repo is not set in $CONFIG_FILE"
+            exit 1
+          fi
+
+          # Validate base-github-repo matches github.repository
+          if [ "$BASE_REPO" != "${{ github.repository }}" ]; then
+            echo "Error: base-github-repo ($BASE_REPO) does not match github.repository (${{ github.repository }})"
+            exit 1
+          fi
+
+          echo "Validation passed: base-github-repo=$BASE_REPO"
+
+          # Extract all syncs with their upstream IDs
+          SYNCS_JSON=$(yq eval -o=json '
+            [
+              .upstreams | to_entries | .[] |
+              .key as $upstream_id |
+              .value.syncs[] |
+              {
+                "upstream_id": $upstream_id,
+                "upstream_branch": .upstream,
+                "base_branch": .base
+              }
+            ]
+          ' "$CONFIG_FILE")
+
+          echo "Syncs to process:"
+          echo "$SYNCS_JSON" | jq .
+
+          # Output as a single-line JSON for matrix
+          echo "syncs=$(echo "$SYNCS_JSON" | jq -c .)" >> $GITHUB_OUTPUT
+
+  sync-all:
+    needs: validate-config
+    if: ${{ needs.validate-config.outputs.syncs != '[]' }}
+    strategy:
+      matrix:
+        sync: ${{ fromJson(needs.validate-config.outputs.syncs) }}
+      fail-fast: false
+    uses: ./.github/workflows/sync-upstream.yaml
+    with:
+      base-branch: ${{ matrix.sync.base_branch }}
+      upstream-id: ${{ matrix.sync.upstream_id }}
+      upstream-branch: ${{ matrix.sync.upstream_branch }}

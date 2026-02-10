@@ -1,0 +1,10 @@
+base-github-repo: tier4/autoware_launch
+default-upstream-id: awf
+
+upstreams:
+  awf: # upstream ID
+    name: AWF
+    url: https://github.com/autowarefoundation/autoware_launch.git
+    syncs:
+      - upstream: main
+        base: tier4/main
