@@ -51,7 +51,6 @@ jobs:
                 | .value.syncs[]
                 | {
                     \"upstream_id\": \$upstream_id,
-                    \"upstream_branch\": .upstream,
                     \"base_branch\": .base
                   }
               ]
@@ -75,5 +74,4 @@ jobs:
     with:
       base-branch: ${{ matrix.sync.base_branch }}
       upstream-id: ${{ matrix.sync.upstream_id }}
-      upstream-branch: ${{ matrix.sync.upstream_branch }}
     secrets: inherit
