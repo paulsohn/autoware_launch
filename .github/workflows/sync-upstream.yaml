@@ -11,10 +11,6 @@ on:
         description: Upstream ID from config (defaults to default-upstream-id in .github/upstreams.yaml if not provided)
         required: false
         type: string
-      upstream-branch:
-        description: Upstream branch to sync from (auto-detected from .github/upstreams.yaml if not provided)
-        required: false
-        type: string
   workflow_call:
     inputs:
       base-branch:
@@ -23,10 +19,6 @@ on:
         type: string
       upstream-id:
         description: Upstream ID from config (defaults to default-upstream-id in .github/upstreams.yaml if not provided)
-        required: false
-        type: string
-      upstream-branch:
-        description: Upstream branch to sync from (auto-detected from .github/upstreams.yaml if not provided)
         required: false
         type: string
     secrets:
@@ -120,21 +112,25 @@ jobs:
           fi
           echo "base-branch=$BASE_BRANCH" >> "$GITHUB_OUTPUT"
 
-          # Determine upstream branch to use
-          if [ -z "${{ inputs.upstream-branch }}" ]; then
-            UPSTREAM_BRANCH=$(yq eval ".\"$BASE_REPO\".upstreams.\"$UPSTREAM_ID\".syncs[] | select(.base == \"$BASE_BRANCH\") | .upstream" "$CONFIG_FILE" | head -n 1)
-            if [ "$UPSTREAM_BRANCH" = "null" ] || [ -z "$UPSTREAM_BRANCH" ]; then
-              echo "Error: upstream-branch was not provided and no syncs entry matches base-branch ($BASE_BRANCH) for upstream ($UPSTREAM_ID)"
-              exit 1
-            fi
-          else
-            UPSTREAM_BRANCH="${{ inputs.upstream-branch }}"
-            if ! [[ "$UPSTREAM_BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]]; then
-              echo "Error: upstream-branch ($UPSTREAM_BRANCH) contains invalid characters"
-              exit 1
-            fi
+          # Determine upstream branch and reviewers from matching sync entry
+          MATCHING_SYNCS=$(yq eval -o=json "
+            .\"$BASE_REPO\".upstreams.\"$UPSTREAM_ID\".syncs // []
+            | map(select(.base == \"$BASE_BRANCH\"))
+          " "$CONFIG_FILE")
+          MATCH_COUNT=$(echo "$MATCHING_SYNCS" | jq 'length')
+          if [ "$MATCH_COUNT" -eq 0 ]; then
+            echo "Error: no syncs entry matches base-branch ($BASE_BRANCH) for upstream ($UPSTREAM_ID)"
+            exit 1
           fi
+          if [ "$MATCH_COUNT" -gt 1 ]; then
+            echo "Error: multiple syncs entries match base-branch ($BASE_BRANCH) for upstream ($UPSTREAM_ID)"
+            exit 1
+          fi
+          UPSTREAM_BRANCH=$(echo "$MATCHING_SYNCS" | jq -r '.[0].upstream')
           echo "upstream-branch=$UPSTREAM_BRANCH" >> "$GITHUB_OUTPUT"
+
+          REVIEWERS=$(echo "$MATCHING_SYNCS" | jq -r '.[0].reviewers // [] | join(",")')
+          echo "reviewers=$REVIEWERS" >> "$GITHUB_OUTPUT"
 
           # Create sanitized branch name by replacing slashes with underscores
           BASE_BRANCH_CLEAN="${BASE_BRANCH//\//_}"
@@ -152,6 +148,7 @@ jobs:
           sync-target-repository: ${{ steps.parse-config.outputs.upstream-url }}
           sync-target-branch: ${{ steps.parse-config.outputs.upstream-branch }}
           pr-title: "chore: sync ${{ steps.parse-config.outputs.base-branch }} from ${{ steps.parse-config.outputs.upstream-id }}:${{ steps.parse-config.outputs.upstream-branch }}"
+          pr-reviewers: ${{ steps.parse-config.outputs.reviewers }}
           pr-labels: |
             bot
             sync-upstream
