@@ -1,0 +1,23 @@
+tier4/autoware_launch:
+  default-upstream-id: awf
+  upstreams:
+    awf: # upstream ID
+      name: AWF
+      url: https://github.com/autowarefoundation/autoware_launch.git
+      syncs:
+        - upstream: main
+          base: tier4/main
+
+### Example for downstream ###
+
+tier4/autoware_launch.oo:
+  default-upstream-id: vanilla
+  upstreams:
+    vanilla: # upstream ID
+      name: vanilla
+      url: https://github.com/tier4/autoware_launch.git
+      syncs:
+        - upstream: stable
+          base: tier4/main
+        # - upstream: beta/v0.xx
+        #   base: beta/v0.yy
