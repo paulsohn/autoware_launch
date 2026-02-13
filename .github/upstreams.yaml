@@ -1,4 +1,4 @@
-tier4/autoware_launch:
+paulsohn/autoware_launch:
   default-upstream-id: awf
   upstreams:
     awf: # upstream ID
@@ -6,9 +6,9 @@ tier4/autoware_launch:
       url: https://github.com/autowarefoundation/autoware_launch.git
       syncs:
         - upstream: main
-          base: tier4/main
+          base: main
           reviewers: # use actual GitHub users or teams
-            - rej55
+            - paulsohn
 
 ### Example for downstream ###
 
