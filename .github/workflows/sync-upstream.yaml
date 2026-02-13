@@ -27,6 +27,8 @@ on:
       PRIVATE_KEY:
         required: true
 
+# cspell: ignore strenv
+
 jobs:
   validate-and-sync:
     runs-on: ubuntu-latest
