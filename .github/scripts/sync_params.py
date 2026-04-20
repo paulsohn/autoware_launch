@@ -155,7 +155,7 @@ def _format_path(path: Iterable[str]) -> str:
 
 
 def _strip_quotes(value: str) -> str:
-    """Remove matching surrounding single or double quotes from *value*, if present.
+    r"""Remove matching surrounding single or double quotes from *value*, if present.
 
     Example:
         value = "\"abc\""
@@ -299,7 +299,7 @@ def _find_flow_sequence_end_idx(lines: list[str], start_idx: int) -> int:
 
 
 def _build_key_line_index(text: str) -> dict[tuple[str, ...], KeyLineInfo]:
-    """Build a mapping from YAML key path to line metadata for *text*.
+    r"""Build a mapping from YAML key path to line metadata for *text*.
 
     Parses *text* line-by-line (without a full YAML parse) to record, for every
     mapping key, its line index, indentation level, and whether the value is on
@@ -491,7 +491,7 @@ def apply_overrides_to_source_text(
     overrides: dict[tuple[str, ...], Any],
     override_flow_blocks: dict[tuple[str, ...], list[str]] | None = None,
 ) -> str:
-    """Return *source_text* with override values substituted at the specified key paths.
+    r"""Return *source_text* with override values substituted at the specified key paths.
 
     Overrides are applied **in descending line order** so that patching a
     lower block (which may change the line count) does not invalidate the stored
@@ -542,7 +542,7 @@ def apply_overrides_to_source_text(
 def extract_flow_sequence_override_blocks_from_text(
     text: str, paths: Iterable[tuple[str, ...]]
 ) -> dict[tuple[str, ...], list[str]]:
-    """Extract the raw source lines of multi-line flow sequences for the given paths.
+    r"""Extract the raw source lines of multi-line flow sequences for the given paths.
 
     For each path in *paths* that resolves to a block-style flow sequence
     (i.e. the value starts on the *next* line as ``[…]``), the raw lines of
@@ -580,7 +580,7 @@ def ensure_override_markers_in_text(
     override_comments: dict[tuple[str, ...], str],
     override_comment_columns: dict[tuple[str, ...], int] | None = None,
 ) -> str:
-    """Re-attach ``{OVERRIDE}`` markers to the patched source text.
+    r"""Re-attach ``{OVERRIDE}`` markers to the patched source text.
 
     After :func:`apply_overrides_to_source_text` replaces values it strips any
     existing inline comments.  This function walks over every overridden key and
@@ -662,7 +662,7 @@ def ensure_override_markers_in_text(
 
 
 def parse_override_comment_columns_from_variant_text(text: str) -> dict[tuple[str, ...], int]:
-    """Return the column position of each override marker comment in *text*.
+    r"""Return the column position of each override marker comment in *text*.
 
     The column (0-based character offset of ``#``) is recorded so that
     :func:`ensure_override_markers_in_text` can re-align the comment in the
@@ -685,7 +685,7 @@ def parse_override_comment_columns_from_variant_text(text: str) -> dict[tuple[st
 
 
 def parse_override_comments_from_variant_text(text: str) -> dict[tuple[str, ...], str]:
-    """
+    r"""
     Parse inline override markers from YAML comments using ruamel.
 
     Supports both:
@@ -737,7 +737,7 @@ def parse_override_comments_from_variant_text(text: str) -> dict[tuple[str, ...]
 
 
 def parse_override_paths_from_variant_text(text: str) -> list[tuple[str, ...]]:
-    """Return the ordered list of key paths that carry override markers in *text*.
+    r"""Return the ordered list of key paths that carry override markers in *text*.
 
     Example:
         text = "a: 1 # {OVERRIDE}\n"
@@ -890,7 +890,7 @@ def run_git(args: list[str], cwd: Path | None = None) -> str:
 
 
 def load_source_body_at_sha(repo_dir: Path, sha: str, source_path: str) -> str:
-    """Read the content of *source_path* at commit *sha* from a local git repository.
+    r"""Read the content of *source_path* at commit *sha* from a local git repository.
 
     Used in check mode to compare the variant against the pinned upstream revision
     rather than the current HEAD, so that upstream-only changes do not trigger
@@ -989,7 +989,7 @@ def last_modified_sha(repo_dir: Path, source_path: str) -> str:
 
 
 def load_yaml_file(path: Path) -> Any:
-    """Load a YAML file with ruamel (round-trip mode), raising :class:`SyncError` on parse failure.
+    r"""Load a YAML file with ruamel (round-trip mode), raising :class:`SyncError` on parse failure.
 
     Example:
         path contains "a: 1\n"
@@ -1035,7 +1035,7 @@ def build_variant_header(source_url: str) -> str:
 
 
 def build_embedded_original_section(source_body: str) -> str:
-    """Return the full upstream source content encoded as a comment block.
+    r"""Return the full upstream source content encoded as a comment block.
 
     The block starts with ``# ###### ORIGINAL (DO NOT EDIT) ######`` and is
     appended at the end of each variant file.  Its purpose is to make upstream
@@ -1053,7 +1053,7 @@ def build_embedded_original_section(source_body: str) -> str:
 
 
 def extract_pinned_source_sha_and_path(variant_text: str) -> tuple[str, str] | None:
-    """Parse the ``# Source:`` header line and return ``(sha, path)`` or ``None``.
+    r"""Parse the ``# Source:`` header line and return ``(sha, path)`` or ``None``.
 
     The SHA and path are extracted from the GitHub blob URL embedded in the
     variant header (e.g. ``https://github.com/org/repo/blob/<sha>/path/to/file.yaml``).
@@ -1078,7 +1078,7 @@ def extract_pinned_source_sha_and_path(variant_text: str) -> tuple[str, str] | N
 
 
 def extract_embedded_original_from_variant_text(text: str) -> str | None:
-    """Reconstruct the upstream source body from the embedded comment block in *text*.
+    r"""Reconstruct the upstream source body from the embedded comment block in *text*.
 
     Strips the leading ``# `` prefix from each commented line to recover the
     original content.  Returns ``None`` if the pivot header is absent, or an
@@ -1119,7 +1119,7 @@ def extract_embedded_original_from_variant_text(text: str) -> str | None:
 
 
 def embedded_original_matches_source(variant_text: str, source_body: str) -> bool:
-    """Return True if the embedded original block in *variant_text* equals *source_body* exactly.
+    r"""Return True if the embedded original block in *variant_text* equals *source_body* exactly.
 
     Example:
         variant_text contains embedded "a: 1\n"
@@ -1224,7 +1224,7 @@ def extract_override_values(
 
 
 def write_or_check(path: Path, new_content: str, check: bool) -> bool:
-    """Write *new_content* to *path* (update mode) or just report whether it differs (check mode).
+    r"""Write *new_content* to *path* (update mode) or just report whether it differs (check mode).
 
     Returns ``True`` if a change was detected (or made), ``False`` if the file
     already matches *new_content*.
@@ -1245,7 +1245,7 @@ def write_or_check(path: Path, new_content: str, check: bool) -> bool:
 
 
 def _build_unified_diff(path: Path, old_content: str | None, new_content: str) -> str:
-    """Build a concise unified diff string for display in check-mode output.
+    r"""Build a concise unified diff string for display in check-mode output.
 
     At most 80 diff lines are emitted to keep CI logs readable.  When
     *old_content* is ``None`` the diff is shown as a pure addition.
@@ -1280,7 +1280,7 @@ def _build_unified_diff(path: Path, old_content: str | None, new_content: str) -
 
 
 def _load_yaml_from_text(text: str, label: str) -> Any:
-    """Parse *text* as YAML (round-trip), raising :class:`SyncError` with *label* on failure.
+    r"""Parse *text* as YAML (round-trip), raising :class:`SyncError` with *label* on failure.
 
     Example:
         text = "a: 1\n"
