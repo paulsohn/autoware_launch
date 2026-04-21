@@ -897,6 +897,7 @@ class CheckModePinnedShaIntegrationTest(unittest.TestCase):
         current_head_body: str,
         variant_text: str,
         check: bool,
+        footer: bool = False,
     ) -> tuple[int, str]:
         """Set up fixtures, run sync_file_entry, return (changed, result_text)."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -929,20 +930,21 @@ class CheckModePinnedShaIntegrationTest(unittest.TestCase):
                 patch("sync_params.load_source_body_at_sha", return_value=pinned_source_body),
             ):
                 changed = sync_file_entry(
-                    workspace_root, repo, repo.files[0], source_dir, check=check
+                    workspace_root, repo, repo.files[0], source_dir, check=check, footer=footer
                 )
 
             return changed, variant_abs.read_text(encoding="utf-8")
 
-    def _make_up_to_date_variant(self, source_body: str) -> str:
+    def _make_up_to_date_variant(self, source_body: str, *, footer: bool = False) -> str:
         """Build a variant that is exactly what sync would produce (no overrides)."""
         from sync_params import build_embedded_original_section
         from sync_params import build_variant_header
 
         url = "https://github.com/org/repo/blob/pinnedsha/params.yaml"
-        return (
-            build_variant_header(url) + source_body + build_embedded_original_section(source_body)
-        )
+        result = build_variant_header(url) + source_body
+        if footer:
+            result += build_embedded_original_section(source_body)
+        return result
 
     def test_check_passes_when_variant_matches_pinned_sha(self) -> None:
         """No drift reported when variant matches the pinned SHA, even if HEAD differs."""
@@ -1065,6 +1067,89 @@ class CheckModePinnedShaIntegrationTest(unittest.TestCase):
         body_lines = [ln for ln in result.splitlines() if not ln.startswith("#")]
         self.assertIn("foo: 99", "\n".join(body_lines))
         self.assertIn("bar: fuga", "\n".join(body_lines))
+
+    def test_footer_flag_appends_embedded_original(self) -> None:
+        """With footer=True the full upstream source is embedded as a comment block."""
+        source_body = "foo: 42\nbar: hoge\n"
+        variant_text = self._make_up_to_date_variant(source_body, footer=False)
+
+        _changed, result = self._run(
+            pinned_source_body=source_body,
+            current_head_body=source_body,
+            variant_text=variant_text,
+            check=False,
+            footer=True,
+        )
+
+        self.assertIn("# ###### ORIGINAL (DO NOT EDIT) ######", result)
+
+    def test_no_footer_by_default(self) -> None:
+        """Without --footer the variant file contains no embedded original block."""
+        source_body = "foo: 42\nbar: hoge\n"
+        variant_text = self._make_up_to_date_variant(source_body, footer=False)
+
+        _changed, result = self._run(
+            pinned_source_body=source_body,
+            current_head_body=source_body,
+            variant_text=variant_text,
+            check=False,
+            footer=False,
+        )
+
+        self.assertNotIn("ORIGINAL (DO NOT EDIT)", result)
+
+    def test_masked_change_printed_when_override_upstream_value_changes(self) -> None:
+        """Update mode prints a masked-change line when an overridden field also changed upstream."""
+        from io import StringIO
+
+        pinned_source = "foo: 42\nbar: hoge\n"
+        head_source = "foo: 99\nbar: hoge\n"  # upstream changed foo
+
+        # Variant overrides foo.
+        url = "https://github.com/org/repo/blob/pinnedsha/params.yaml"
+        from sync_params import build_variant_header
+
+        variant_text = build_variant_header(url) + "foo: local_val # {OVERRIDE}\nbar: hoge\n"
+
+        captured = StringIO()
+        with patch("sys.stdout", captured):
+            self._run(
+                pinned_source_body=pinned_source,
+                current_head_body=head_source,
+                variant_text=variant_text,
+                check=False,
+                footer=False,
+            )
+
+        output = captured.getvalue()
+        self.assertIn("Masked upstream change", output)
+        self.assertIn("foo", output)
+        # Should report the old and new upstream values.
+        self.assertIn("42", output)
+        self.assertIn("99", output)
+
+    def test_no_masked_change_when_upstream_value_unchanged(self) -> None:
+        """No masked-change warning when the upstream value for an override did not change."""
+        from io import StringIO
+
+        source_body = "foo: 42\nbar: hoge\n"
+        url = "https://github.com/org/repo/blob/pinnedsha/params.yaml"
+        from sync_params import build_variant_header
+
+        variant_text = build_variant_header(url) + "foo: local_val # {OVERRIDE}\nbar: hoge\n"
+
+        captured = StringIO()
+        with patch("sys.stdout", captured):
+            self._run(
+                pinned_source_body=source_body,
+                current_head_body=source_body,
+                variant_text=variant_text,
+                check=False,
+                footer=False,
+            )
+
+        output = captured.getvalue()
+        self.assertNotIn("Masked upstream change", output)
 
 
 if __name__ == "__main__":

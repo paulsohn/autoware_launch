@@ -94,7 +94,35 @@ jobs:
           python -m pip install ruamel.yaml
 
       - name: Update params
-        run: python .github/scripts/sync_params.py ${{ matrix.category }}
+        run: |
+          python .github/scripts/sync_params.py ${{ matrix.category }} \
+            2>&1 | tee /tmp/sync-out.txt
+
+      - name: Prepare PR body
+        id: pr-body
+        run: |
+          set -euo pipefail
+          masked="$(grep '^\[sync\] Masked upstream change' /tmp/sync-out.txt || true)"
+
+          body="Automated parameter sync update for category **${{ matrix.category }}**.
+
+          Trigger: ${{ github.event_name }}
+          Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          if [[ -n "${masked}" ]]; then
+            body+="
+
+          ### ⚠️ Upstream changes masked by overrides
+
+          The following fields changed upstream but are kept at their local override values.
+          Review whether each override value should be updated.
+
+          \`\`\`
+          ${masked}
+          \`\`\`"
+          fi
+
+          printf '%s\n' "${body}" > /tmp/pr-body.md
 
       - name: Create update PR
         id: create-pr
@@ -105,11 +133,7 @@ jobs:
           branch: sync-params/${{ matrix.category }}
           title: "chore(sync-params): update ${{ matrix.category }} params"
           commit-message: "chore(sync-params): update ${{ matrix.category }} params"
-          body: |
-            Automated parameter sync update for category **${{ matrix.category }}**.
-
-            Trigger: ${{ github.event_name }}
-            Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          body-path: /tmp/pr-body.md
           labels: |
             tag:sync-params
 

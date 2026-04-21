@@ -1299,6 +1299,7 @@ def sync_file_entry(
     file_entry: FileEntry,
     source_repo_dir: Path,
     check: bool,
+    footer: bool = False,
 ) -> int:
     """Sync (or check) all variant files for a single source file entry.
 
@@ -1311,8 +1312,16 @@ def sync_file_entry(
          so that upstream changes between the pin and HEAD are ignored.
     3. Apply active overrides on top of the effective source body.
     4. Re-attach override markers and prepend the header.
-    5. Append the embedded original comment block.
+    5. Optionally append the embedded original comment block (when *footer* is True).
     6. Write the result (update mode) or compare and report drift (check mode).
+
+    When *footer* is ``False`` (the default), no ``ORIGINAL (DO NOT EDIT)`` block
+    is appended and check mode only compares the YAML body.  When *footer* is
+    ``True``, the full upstream source is embedded as a comment block and check
+    mode also verifies that the embedded block matches the pinned upstream content.
+
+    In update mode, any upstream change to an overridden field is reported to
+    stdout as a *masked-change* warning so it can be surfaced in the sync PR body.
 
     Overrides whose key paths have been removed from the upstream source are
     treated as ``stale``:  they are silently dropped in update mode (the deletion
@@ -1376,10 +1385,13 @@ def sync_file_entry(
             effective_source_yaml = source_yaml
             effective_source_url = source_url
 
-        effective_embedded_original = build_embedded_original_section(effective_source_body)
+        effective_embedded_original = (
+            build_embedded_original_section(effective_source_body) if footer else ""
+        )
 
-        # In update mode, warn if the embedded original drifted from the pinned source.
-        if not check and pinned_body is not None:
+        # In update mode with footer enabled, warn if the embedded original drifted
+        # from the pinned source (indicates the footer is stale from a previous run).
+        if footer and not check and pinned_body is not None:
             if variant_text and not embedded_original_matches_source(variant_text, pinned_body):
                 print(
                     "[sync] Embedded original drift detected in "
@@ -1425,6 +1437,28 @@ def sync_file_entry(
             variant_text, active_overrides.keys()
         )
 
+        # In update mode, report any overridden field whose upstream value changed
+        # between the pinned SHA and HEAD so reviewers can see masked changes in the
+        # sync PR body.
+        if not check and pinned_body is not None:
+            pinned_yaml = _load_yaml_from_text(pinned_body, f"pinned {pinned_sha}")
+            if pinned_yaml is None:
+                pinned_yaml = {}
+            for path in active_overrides:
+                try:
+                    pinned_val = get_value_at_path(pinned_yaml, path)
+                    head_val = get_value_at_path(source_yaml, path)
+                except KeyError:
+                    continue
+                if pinned_val != head_val:
+                    print(
+                        f"[sync] Masked upstream change in '{variant.path}': "
+                        f"{_format_path(path)}  "
+                        f"upstream: {_render_inline_yaml_value(pinned_val)} -> "
+                        f"{_render_inline_yaml_value(head_val)}  "
+                        f"kept as: {_render_inline_yaml_value(active_overrides[path])}"
+                    )
+
         active_override_comments = {
             p: c for p, c in override_comments.items() if p in active_overrides
         }
@@ -1457,6 +1491,7 @@ def run_sync(
     config_path: Path,
     category: str,
     check: bool,
+    footer: bool = False,
     verbose: bool = True,
 ) -> int:
     """Run the full sync pipeline for *category* and return an exit code.
@@ -1465,6 +1500,9 @@ def run_sync(
     exit), then calls :func:`sync_file_entry` for every configured source file.
     Prints a summary line at the end.  In check mode returns ``1`` if any variant
     drifted, otherwise returns ``0``.
+
+    When *footer* is ``True``, the full upstream source is embedded as a comment
+    block at the end of each variant file and check mode also validates that block.
 
     Example:
         category = "perception"
@@ -1500,6 +1538,7 @@ def run_sync(
                     file_entry=file_entry,
                     source_repo_dir=repo_dir,
                     check=check,
+                    footer=footer,
                 )
                 changed_variants += changed_variants_delta
                 if not check and changed_variants > before_variants:
@@ -1538,6 +1577,15 @@ def main() -> int:
         action="store_true",
         help="Check for drift without writing files.",
     )
+    parser.add_argument(
+        "--footer",
+        action="store_true",
+        help=(
+            "Append the full upstream source as a comment block at the end of each variant file. "
+            "In check mode, also validates that the embedded block matches the pinned upstream "
+            "content. Disabled by default to keep variant files compact."
+        ),
+    )
     args = parser.parse_args()
     config_path = args.config if args.config.is_absolute() else (Path.cwd() / args.config)
     if not config_path.exists():
@@ -1546,6 +1594,7 @@ def main() -> int:
         config_path=config_path,
         category=args.category,
         check=args.check,
+        footer=args.footer,
         verbose=True,
     )
 
