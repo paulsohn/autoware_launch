@@ -92,7 +92,7 @@ from ruamel.yaml.comments import CommentedSeq
 
 OVERRIDE_MARKER = "{OVERRIDE}"
 _OVERRIDE_MARKER_PATTERN = re.compile(r"\{OVERRIDE(?:\s*:\s*([^{}]*?))?\}")
-ORIGINAL_PIVOT = "###### ORIGINAL (DO NOT EDIT) ######"
+OVERRIDDEN_VALUES_PIVOT = "###### OVERRIDDEN VALUES (DO NOT EDIT) ######"
 
 
 class SyncError(RuntimeError):
@@ -1034,21 +1034,99 @@ def build_variant_header(source_url: str) -> str:
     return "\n".join(lines) + "\n\n"
 
 
-def build_embedded_original_section(source_body: str) -> str:
-    r"""Return the full upstream source content encoded as a comment block.
+def extract_raw_value_lines_from_source_text(
+    source_text: str,
+    path: tuple[str, ...],
+) -> list[str]:
+    r"""Return the raw lines that make up the value at *path* in *source_text*.
 
-    The block starts with ``# ###### ORIGINAL (DO NOT EDIT) ######`` and is
-    appended at the end of each variant file.  Its purpose is to make upstream
-    changes to overridden fields explicitly visible in the diff of the sync PR,
-    prompting reviewers to consider whether the override value should also change.
+    For an inline value (``key: value``) a single-element list containing the
+    value text is returned.  For a block value (flow sequence or block sequence
+    / scalar on its own line) the exact source lines from the first value line
+    to the end of the block are returned, preserving indentation.
+    Returns an empty list when *path* is not found.
 
     Example:
-        source_body = "a: 1\n"
-        returns a string containing "# ###### ORIGINAL (DO NOT EDIT) ######"
+        source_text = "a: 1\nb:\n  - x\n  - y\n"
+        extract_raw_value_lines_from_source_text(source_text, ("a",))
+        returns ["1"]
+        extract_raw_value_lines_from_source_text(source_text, ("b",))
+        returns ["  - x", "  - y"]
     """
-    lines = source_body.splitlines()
-    commented_lines = [f"# {line}" if line else "#" for line in lines]
-    section = ["", f"# {ORIGINAL_PIVOT}", *commented_lines]
+    lines = source_text.splitlines()
+    key_index = _build_key_line_index(source_text)
+    info = key_index.get(path)
+    if info is None:
+        return []
+    if info.has_inline_value:
+        key_line = lines[info.line_idx]
+        before_comment = key_line.split("#", 1)[0]
+        value_part = before_comment.split(":", 1)[1].strip()
+        return [value_part]
+    value_line_idx = _find_first_value_line(lines, info.line_idx, info.indent)
+    if value_line_idx is None:
+        return []
+    if lines[value_line_idx].lstrip().startswith("["):
+        end_idx = _find_flow_sequence_end_idx(lines, value_line_idx)
+        return lines[value_line_idx:end_idx]
+    end_idx = value_line_idx + 1
+    while end_idx < len(lines):
+        line = lines[end_idx]
+        if line.strip() == "":
+            end_idx += 1
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if indent <= info.indent:
+            break
+        end_idx += 1
+    return lines[value_line_idx:end_idx]
+
+
+def build_overridden_values_section(
+    source_text: str,
+    override_paths: Iterable[tuple[str, ...]],
+) -> str:
+    r"""Return a comment block recording the upstream values of each overridden key.
+
+    Only the values of the fields listed in *override_paths* are encoded, not the
+    entire source.  This keeps the footer compact while still making upstream
+    changes to overridden fields visible in the sync PR diff.
+
+    For each path the block records:
+
+    - ``# <path>: <value>`` when the upstream value is a single-line (inline) scalar.
+    - ``# <path>:`` followed by the raw value lines (commented out) when the value
+      spans multiple lines (e.g. a flow sequence or block sequence).
+
+    An empty string is returned when *override_paths* is empty, so no footer is
+    appended for variant files that carry no overrides.
+
+    Args:
+        source_text: The upstream YAML content from which to read values.
+        override_paths: Ordered iterable of key-path tuples whose upstream values
+            should be recorded.
+
+    Example:
+        source_text = "/**:\n  ros__parameters:\n    foo: 1\n"
+        override_paths = [("/**", "ros__parameters", "foo")]
+        returns a string containing "# ###### OVERRIDDEN VALUES (DO NOT EDIT) ######"
+        and "# /**:ros__parameters:foo: 1"
+    """
+    paths = list(override_paths)
+    if not paths:
+        return ""
+    section: list[str] = ["", f"# {OVERRIDDEN_VALUES_PIVOT}"]
+    for path in paths:
+        raw_lines = extract_raw_value_lines_from_source_text(source_text, path)
+        path_label = _format_path(path)
+        if not raw_lines:
+            section.append(f"# {path_label}: <not found>")
+        elif len(raw_lines) == 1:
+            section.append(f"# {path_label}: {raw_lines[0]}")
+        else:
+            section.append(f"# {path_label}:")
+            for raw_line in raw_lines:
+                section.append(f"# {raw_line}" if raw_line else "#")
     return "\n".join(section) + "\n"
 
 
@@ -1077,57 +1155,46 @@ def extract_pinned_source_sha_and_path(variant_text: str) -> tuple[str, str] | N
     return None
 
 
-def extract_embedded_original_from_variant_text(text: str) -> str | None:
-    r"""Reconstruct the upstream source body from the embedded comment block in *text*.
+def extract_overridden_values_section_from_variant_text(text: str) -> str | None:
+    r"""Return the raw text of the overridden-values footer block in *text*, or ``None``.
 
-    Strips the leading ``# `` prefix from each commented line to recover the
-    original content.  Returns ``None`` if the pivot header is absent, or an
-    empty string if the block is present but contains no content lines.
-
-    Raises :class:`SyncError` if any line in the block does not conform to the
-    expected ``# <content>`` or ``#`` (blank) format.
+    Scans *text* for the ``OVERRIDDEN_VALUES_PIVOT`` header line and returns
+    everything from that line to the end of the file as a single string.
+    Returns ``None`` when the pivot line is absent.
 
     Example:
-        text contains "# ###### ORIGINAL (DO NOT EDIT) ######\n# a: 1\n"
-        returns "a: 1\n"
+        text contains "# ###### OVERRIDDEN VALUES (DO NOT EDIT) ######\n# foo: 1\n"
+        returns "# ###### OVERRIDDEN VALUES (DO NOT EDIT) ######\n# foo: 1\n"
     """
-    lines = text.splitlines()
-    pivot_line = f"# {ORIGINAL_PIVOT}"
-    pivot_idx = next((idx for idx, line in enumerate(lines) if line.strip() == pivot_line), None)
-    if pivot_idx is None:
-        return None
-
-    reconstructed: list[str] = []
-    for line in lines[pivot_idx + 1 :]:
-        if line == "#":
-            reconstructed.append("")
-            continue
-        if line.startswith("# "):
-            reconstructed.append(line[2:])
-            continue
-        if line.strip() == "":
-            reconstructed.append("")
-            continue
-        raise SyncError(
-            "Embedded original section is malformed; expected only commented lines "
-            f"after '{ORIGINAL_PIVOT}'."
-        )
-
-    if not reconstructed:
-        return ""
-    return "\n".join(reconstructed) + "\n"
+    pivot_line = f"# {OVERRIDDEN_VALUES_PIVOT}"
+    lines = text.splitlines(keepends=True)
+    for idx, line in enumerate(lines):
+        if line.rstrip("\n") == pivot_line:
+            return "".join(lines[idx:])
+    return None
 
 
-def embedded_original_matches_source(variant_text: str, source_body: str) -> bool:
-    r"""Return True if the embedded original block in *variant_text* equals *source_body* exactly.
+def overridden_values_section_matches(
+    variant_text: str,
+    source_text: str,
+    override_paths: Iterable[tuple[str, ...]],
+) -> bool:
+    r"""Return True when the footer in *variant_text* matches what would be generated now.
+
+    Builds the expected footer from *source_text* and *override_paths*, then
+    compares it to the footer embedded in *variant_text*.
 
     Example:
-        variant_text contains embedded "a: 1\n"
-        source_body = "a: 1\n"
+        variant_text ends with "# ###### OVERRIDDEN VALUES (DO NOT EDIT) ######\n# foo: 1\n"
+        source_text = "foo: 1\n"
+        override_paths = [("foo",)]
         returns True
     """
-    extracted = extract_embedded_original_from_variant_text(variant_text)
-    return extracted is not None and extracted == source_body
+    expected = build_overridden_values_section(source_text, override_paths)
+    if not expected:
+        return extract_overridden_values_section_from_variant_text(variant_text) is None
+    extracted = extract_overridden_values_section_from_variant_text(variant_text)
+    return extracted is not None and extracted.strip() == expected.strip()
 
 
 def get_value_at_path(data: Any, path: tuple[str, ...]) -> Any:
@@ -1376,21 +1443,10 @@ def sync_file_entry(
             effective_source_yaml = source_yaml
             effective_source_url = source_url
 
-        effective_embedded_original = build_embedded_original_section(effective_source_body)
-
-        # In update mode, warn if the embedded original drifted from the pinned source.
-        if not check and pinned_body is not None:
-            if variant_text and not embedded_original_matches_source(variant_text, pinned_body):
-                print(
-                    "[sync] Embedded original drift detected in "
-                    f"'{variant.path}' for source '{file_entry.source}'."
-                )
-
         overrides, override_comments = extract_override_values(variant_abs)
         override_comment_columns = parse_override_comment_columns_from_variant_text(variant_text)
         if not overrides:
             variant_content = build_variant_header(effective_source_url) + effective_source_body
-            variant_content += effective_embedded_original
             changed = write_or_check(variant_abs, variant_content, check)
             if changed:
                 variants_changed += 1
@@ -1439,7 +1495,9 @@ def sync_file_entry(
             variant_body, active_override_comments, active_override_comment_columns
         )
         variant_content = build_variant_header(effective_source_url) + variant_body
-        variant_content += effective_embedded_original
+        variant_content += build_overridden_values_section(
+            effective_source_body, active_overrides.keys()
+        )
         changed = write_or_check(variant_abs, variant_content, check)
         if changed:
             variants_changed += 1

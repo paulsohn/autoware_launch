@@ -23,16 +23,17 @@ from sync_params import RepositoryEntry
 from sync_params import SyncError
 from sync_params import VariantEntry
 from sync_params import apply_overrides_to_source_text
-from sync_params import build_embedded_original_section
+from sync_params import build_overridden_values_section
 from sync_params import build_variant_header
-from sync_params import embedded_original_matches_source
 from sync_params import ensure_override_markers_in_text
-from sync_params import extract_embedded_original_from_variant_text
 from sync_params import extract_flow_sequence_override_blocks_from_text
+from sync_params import extract_overridden_values_section_from_variant_text
 from sync_params import extract_override_values
 from sync_params import extract_pinned_source_sha_and_path
+from sync_params import extract_raw_value_lines_from_source_text
 from sync_params import get_value_at_path
 from sync_params import load_config
+from sync_params import overridden_values_section_matches
 from sync_params import parse_override_comment_columns_from_variant_text
 from sync_params import parse_override_comments_from_variant_text
 from sync_params import parse_override_paths_from_variant_text
@@ -291,30 +292,58 @@ perception: []
         self.assertIn("managed by workflow", header)
         self.assertIn("https://github.com/org/repo/blob/abc123/path/to/file.yaml", header)
 
-    def test_build_embedded_original_section(self) -> None:
-        source_body = """/**:\n  ros__parameters:\n    foo: bar\n"""
-        section = build_embedded_original_section(source_body)
-        self.assertIn("# ###### ORIGINAL (DO NOT EDIT) ######", section)
-        self.assertIn("# /**:", section)
-        self.assertIn("#   ros__parameters:", section)
-        self.assertIn("#     foo: bar", section)
+    def test_extract_raw_value_lines_inline(self) -> None:
+        source_text = "a: 1\nb: hello\n"
+        self.assertEqual(extract_raw_value_lines_from_source_text(source_text, ("a",)), ["1"])
+        self.assertEqual(extract_raw_value_lines_from_source_text(source_text, ("b",)), ["hello"])
 
-    def test_extract_embedded_original_from_variant_text_roundtrip(self) -> None:
-        source_body = """/**:\n  ros__parameters:\n    foo: bar\n"""
-        variant_text = """# header\n""" + build_embedded_original_section(source_body)
-        extracted = extract_embedded_original_from_variant_text(variant_text)
-        self.assertEqual(extracted, source_body)
+    def test_extract_raw_value_lines_block_sequence(self) -> None:
+        source_text = "items:\n  - x\n  - y\n"
+        result = extract_raw_value_lines_from_source_text(source_text, ("items",))
+        self.assertEqual(result, ["  - x", "  - y"])
 
-    def test_embedded_original_matches_source(self) -> None:
-        source_body = """/**:\n  ros__parameters:\n    foo: bar\n"""
-        variant_text = """/**:\n  ros__parameters:\n    foo: local # {OVERRIDE}\n"""
-        variant_text += build_embedded_original_section(source_body)
-        self.assertTrue(embedded_original_matches_source(variant_text, source_body))
+    def test_extract_raw_value_lines_not_found(self) -> None:
+        source_text = "a: 1\n"
+        self.assertEqual(extract_raw_value_lines_from_source_text(source_text, ("missing",)), [])
 
-    def test_embedded_original_mismatch(self) -> None:
-        source_body = """/**:\n  ros__parameters:\n    foo: baz\n"""
-        variant_text = """/**:\n  ros__parameters:\n    foo: local # {OVERRIDE}\n\n# ###### ORIGINAL (DO NOT EDIT) ######\n# /**:\n#   ros__parameters:\n#     foo: bar\n"""
-        self.assertFalse(embedded_original_matches_source(variant_text, source_body))
+    def test_build_overridden_values_section_scalar(self) -> None:
+        source_text = "/**:\n  ros__parameters:\n    foo: bar\n"
+        section = build_overridden_values_section(source_text, [("/**", "ros__parameters", "foo")])
+        self.assertIn("# ###### OVERRIDDEN VALUES (DO NOT EDIT) ######", section)
+        self.assertIn("bar", section)
+
+    def test_build_overridden_values_section_empty_paths(self) -> None:
+        source_text = "foo: 1\n"
+        self.assertEqual(build_overridden_values_section(source_text, []), "")
+
+    def test_extract_overridden_values_section_from_variant_text(self) -> None:
+        source_text = "foo: 42\n"
+        footer = build_overridden_values_section(source_text, [("foo",)])
+        variant_text = "# header\nfoo: 99 # {OVERRIDE}\n" + footer
+        extracted = extract_overridden_values_section_from_variant_text(variant_text)
+        self.assertIsNotNone(extracted)
+        self.assertIn("OVERRIDDEN VALUES", extracted)
+
+    def test_extract_overridden_values_section_absent(self) -> None:
+        self.assertIsNone(extract_overridden_values_section_from_variant_text("foo: 1\n"))
+
+    def test_overridden_values_section_matches(self) -> None:
+        source_text = "foo: 42\n"
+        override_paths = [("foo",)]
+        footer = build_overridden_values_section(source_text, override_paths)
+        variant_text = "foo: 99 # {OVERRIDE}\n" + footer
+        self.assertTrue(
+            overridden_values_section_matches(variant_text, source_text, override_paths)
+        )
+
+    def test_overridden_values_section_mismatch(self) -> None:
+        source_text_new = "foo: 100\n"
+        override_paths = [("foo",)]
+        old_footer = build_overridden_values_section("foo: 42\n", override_paths)
+        variant_text = "foo: 99 # {OVERRIDE}\n" + old_footer
+        self.assertFalse(
+            overridden_values_section_matches(variant_text, source_text_new, override_paths)
+        )
 
     def test_extract_pinned_source_sha_and_path(self) -> None:
         variant_text = """# This file is managed by workflow.\n# Source: https://github.com/org/repo/blob/deadbeef/path/to/file.yaml\n"""
@@ -936,13 +965,10 @@ class CheckModePinnedShaIntegrationTest(unittest.TestCase):
 
     def _make_up_to_date_variant(self, source_body: str) -> str:
         """Build a variant that is exactly what sync would produce (no overrides)."""
-        from sync_params import build_embedded_original_section
         from sync_params import build_variant_header
 
         url = "https://github.com/org/repo/blob/pinnedsha/params.yaml"
-        return (
-            build_variant_header(url) + source_body + build_embedded_original_section(source_body)
-        )
+        return build_variant_header(url) + source_body
 
     def test_check_passes_when_variant_matches_pinned_sha(self) -> None:
         """No drift reported when variant matches the pinned SHA, even if HEAD differs."""
