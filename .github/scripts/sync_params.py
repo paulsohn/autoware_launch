@@ -1477,11 +1477,11 @@ def sync_file_entry(
                     )
                     _entry = (
                         f"{variant.path} ({_format_path(path)})\n"
-                        f"  upstream (before):\n{_before}\n"
-                        f"  upstream (after):\n{_after}\n"
-                        f"  kept as:\n{_kept}\n"
+                        f"  upstream (before): {_before}\n"
+                        f"  upstream (after): {_after}\n"
+                        f"  kept as: {_kept}\n"
                     )
-                    print(_entry)
+                    print(f"[[sync-params]] Masked changes detected in {_entry}")
                     if output_masked is not None:
                         with output_masked.open("a", encoding="utf-8") as _mf:
                             _mf.write(_entry)
