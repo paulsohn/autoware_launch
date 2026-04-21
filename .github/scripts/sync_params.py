@@ -9,16 +9,16 @@ or **checks** that they are still in sync with the pinned upstream revision.
 
 Overview
 --------
-Each variant file is a copy of an upstream ``*.param.yaml`` with three additions:
-
+Each variant file is a copy of an upstream ``*.param.yaml`` with two default additions:
 1. **Header** — workflow-managed comment block that records the source GitHub URL
    (pinned to the last-modified commit SHA of that file).
 2. **Override markers** — leaf fields annotated with ``# {OVERRIDE}`` or
    ``# {OVERRIDE: reason}`` retain their local values across syncs.  All other
    fields are overwritten from the upstream source.
-3. **Embedded original** — the full upstream content is appended as a comment
-   block (``# ###### ORIGINAL (DO NOT EDIT) ######``) so that any upstream change
-   to an overridden field is visible in the diff of the generated sync PR.
+
+An optional **Embedded original** footer may also be appended as a comment block
+(``# ###### ORIGINAL (DO NOT EDIT) ######``) when updated with `--footer`,
+so that upstream changes to overridden fields are visible in generated diffs.
 
 Usage
 -----
