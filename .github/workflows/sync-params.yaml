@@ -1,4 +1,4 @@
-name: update-params
+name: sync-params
 
 on:
   schedule:
@@ -61,7 +61,7 @@ jobs:
           echo "matrix=${selected_json}" >> "${GITHUB_OUTPUT}"
           echo "Selected categories: ${selected_json}"
 
-  update-params:
+  sync-params:
     needs: resolve-categories
     runs-on: ubuntu-22.04
     strategy:
@@ -70,7 +70,7 @@ jobs:
       matrix:
         category: ${{ fromJson(needs.resolve-categories.outputs.matrix) }}
     concurrency:
-      group: update-params-${{ matrix.category }}
+      group: sync-params-${{ matrix.category }}
       cancel-in-progress: false
     steps:
       - name: Generate token
@@ -151,7 +151,7 @@ jobs:
           fi
 
           {
-            echo "## update-params: ${{ matrix.category }}"
+            echo "## sync-params: ${{ matrix.category }}"
             echo "Status: ${{ job.status }}"
             echo "PR: ${pr_cell}"
           } >> "${GITHUB_STEP_SUMMARY}"

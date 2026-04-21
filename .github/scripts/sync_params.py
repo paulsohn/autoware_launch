@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Sync parameter files from upstream repositories into this repository's variant files.
 
-This script is the backend for the ``update-params`` and ``check-params`` GitHub Actions
+This script is the backend for the ``sync-params`` and ``check-params`` GitHub Actions
 workflows.  Given a *category* name (e.g. ``perception``), it reads the corresponding
 section of ``.github/sync-params.yaml``, clones each listed upstream repository, and
 for every ``source → variants`` mapping it either **updates** the variant files on disk
@@ -1384,7 +1384,7 @@ def sync_file_entry(
 
         # In update mode: use current HEAD source.
         # In check mode: use the pinned SHA source so that we only detect manual edits
-        # to the variant file, not upstream changes (those are handled by update-params).
+        # to the variant file, not upstream changes (those are handled by sync-params).
         if check and pinned_body is not None:
             effective_source_body = pinned_body
             effective_source_yaml = _load_yaml_from_text(pinned_body, f"pinned {pinned_sha}")

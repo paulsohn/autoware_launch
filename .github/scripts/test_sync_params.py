@@ -887,7 +887,7 @@ class CheckModePinnedShaIntegrationTest(unittest.TestCase):
 
     Check mode should only detect manual edits to variant files (drift from the last
     synced state). Upstream changes between the pinned SHA and the current HEAD must
-    not cause check mode to report drift — those are handled by update-params.
+    not cause check mode to report drift — those are handled by sync-params.
     """
 
     def _run(
