@@ -898,6 +898,7 @@ class CheckModePinnedShaIntegrationTest(unittest.TestCase):
         variant_text: str,
         check: bool,
         footer: bool = False,
+        output_masked: "Path | None" = None,
     ) -> tuple[int, str]:
         """Set up fixtures, run sync_file_entry, return (changed, result_text)."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -930,7 +931,13 @@ class CheckModePinnedShaIntegrationTest(unittest.TestCase):
                 patch("sync_params.load_source_body_at_sha", return_value=pinned_source_body),
             ):
                 changed = sync_file_entry(
-                    workspace_root, repo, repo.files[0], source_dir, check=check, footer=footer
+                    workspace_root,
+                    repo,
+                    repo.files[0],
+                    source_dir,
+                    check=check,
+                    footer=footer,
+                    output_masked=output_masked,
                 )
 
             return changed, variant_abs.read_text(encoding="utf-8")
@@ -1099,13 +1106,48 @@ class CheckModePinnedShaIntegrationTest(unittest.TestCase):
         self.assertNotIn("ORIGINAL (DO NOT EDIT)", result)
 
     def test_masked_change_printed_when_override_upstream_value_changes(self) -> None:
-        """Update mode prints a masked-change line when an overridden field also changed upstream."""
+        """Update mode prints masked-change to stdout and writes to file when provided."""
         from io import StringIO
 
         pinned_source = "foo: 42\nbar: hoge\n"
         head_source = "foo: 99\nbar: hoge\n"  # upstream changed foo
 
         # Variant overrides foo.
+        url = "https://github.com/org/repo/blob/pinnedsha/params.yaml"
+        from sync_params import build_variant_header
+
+        variant_text = build_variant_header(url) + "foo: local_val # {OVERRIDE}\nbar: hoge\n"
+
+        with tempfile.TemporaryDirectory() as tmpd:
+            masked_file = Path(tmpd) / "masked.txt"
+            captured = StringIO()
+            with patch("sys.stdout", captured):
+                self._run(
+                    pinned_source_body=pinned_source,
+                    current_head_body=head_source,
+                    variant_text=variant_text,
+                    check=False,
+                    footer=False,
+                    output_masked=masked_file,
+                )
+            file_output = masked_file.read_text(encoding="utf-8")
+
+        stdout_output = captured.getvalue()
+        for output in (stdout_output, file_output):
+            self.assertIn("foo", output)
+            self.assertIn("upstream (before):", output)
+            self.assertIn("upstream (after):", output)
+            self.assertIn("kept as:", output)
+            self.assertIn("42", output)
+            self.assertIn("99", output)
+
+    def test_masked_change_printed_to_stdout_without_file(self) -> None:
+        """Masked-change is printed to stdout even when no output_masked file is given."""
+        from io import StringIO
+
+        pinned_source = "foo: 42\nbar: hoge\n"
+        head_source = "foo: 99\nbar: hoge\n"
+
         url = "https://github.com/org/repo/blob/pinnedsha/params.yaml"
         from sync_params import build_variant_header
 
@@ -1119,17 +1161,16 @@ class CheckModePinnedShaIntegrationTest(unittest.TestCase):
                 variant_text=variant_text,
                 check=False,
                 footer=False,
+                output_masked=None,
             )
 
         output = captured.getvalue()
-        self.assertIn("Masked upstream change", output)
-        self.assertIn("foo", output)
-        # Should report the old and new upstream values.
+        self.assertIn("upstream (before):", output)
         self.assertIn("42", output)
         self.assertIn("99", output)
 
     def test_no_masked_change_when_upstream_value_unchanged(self) -> None:
-        """No masked-change warning when the upstream value for an override did not change."""
+        """No masked-change output when the upstream value for an override did not change."""
         from io import StringIO
 
         source_body = "foo: 42\nbar: hoge\n"
@@ -1146,10 +1187,11 @@ class CheckModePinnedShaIntegrationTest(unittest.TestCase):
                 variant_text=variant_text,
                 check=False,
                 footer=False,
+                output_masked=None,
             )
 
         output = captured.getvalue()
-        self.assertNotIn("Masked upstream change", output)
+        self.assertNotIn("upstream (before):", output)
 
 
 if __name__ == "__main__":

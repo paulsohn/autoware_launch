@@ -96,20 +96,19 @@ jobs:
       - name: Update params
         run: |
           python .github/scripts/sync_params.py ${{ matrix.category }} \
-            2>&1 | tee /tmp/sync-out.txt
+            --output-masked /tmp/masked.txt
 
       - name: Prepare PR body
         id: pr-body
         run: |
           set -euo pipefail
-          masked="$(grep '^\[sync\] Masked upstream change' /tmp/sync-out.txt || true)"
 
           body="Automated parameter sync update for category **${{ matrix.category }}**.
 
           Trigger: ${{ github.event_name }}
           Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          if [[ -n "${masked}" ]]; then
+          if [[ -s /tmp/masked.txt ]]; then
             body+="
 
           ### ⚠️ Upstream changes masked by overrides
@@ -118,7 +117,7 @@ jobs:
           Review whether each override value should be updated.
 
           \`\`\`
-          ${masked}
+          $(cat /tmp/masked.txt)
           \`\`\`"
           fi
 

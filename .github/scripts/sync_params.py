@@ -360,6 +360,18 @@ def _render_inline_yaml_value(value: Any) -> str:
     return dumped.splitlines()[0] if dumped else "null"
 
 
+def _render_yaml_value(value: Any) -> str:
+    """Render *value* as YAML, preserving its natural round-trip style.
+
+    Example:
+        value = 42
+        returns "42"
+    """
+    stream = io.StringIO()
+    _YAML_RT.dump(value, stream)
+    return stream.getvalue().rstrip("\n")
+
+
 def _find_first_value_line(lines: list[str], key_line_idx: int, key_indent: int) -> int | None:
     """Return the index of the first non-comment, non-blank value line after a block key.
 
@@ -1300,6 +1312,7 @@ def sync_file_entry(
     source_repo_dir: Path,
     check: bool,
     footer: bool = False,
+    output_masked: "Path | None" = None,
 ) -> int:
     """Sync (or check) all variant files for a single source file entry.
 
@@ -1394,8 +1407,8 @@ def sync_file_entry(
         if footer and not check and pinned_body is not None:
             if variant_text and not embedded_original_matches_source(variant_text, pinned_body):
                 print(
-                    "[sync] Embedded original drift detected in "
-                    f"'{variant.path}' for source '{file_entry.source}'."
+                    f"[[sync-params]] Warning in {variant.path}: "
+                    f"footer is stale relative to pinned source '{file_entry.source}'."
                 )
 
         overrides, override_comments = extract_override_values(variant_abs)
@@ -1409,7 +1422,7 @@ def sync_file_entry(
                 if check:
                     old_content = variant_text if variant_text else None
                     diff_text = _build_unified_diff(variant_abs, old_content, variant_content)
-                    print(f"[sync] Drift detail: {variant.path}")
+                    print(f"[[sync-params]] Drift detected: {variant.path}")
                     if diff_text:
                         print(diff_text)
             continue
@@ -1426,7 +1439,7 @@ def sync_file_entry(
         if stale_paths:
             for p in stale_paths:
                 print(
-                    f"[sync] Stale override {_format_path(p)} in '{variant.path}' "
+                    f"[[sync-params]] Stale override in {variant.path}: {_format_path(p)} "
                     f"no longer exists in source '{file_entry.source}'."
                 )
             if check:
@@ -1451,13 +1464,27 @@ def sync_file_entry(
                 except KeyError:
                     continue
                 if pinned_val != head_val:
-                    print(
-                        f"[sync] Masked upstream change in '{variant.path}': "
-                        f"{_format_path(path)}  "
-                        f"upstream: {_render_inline_yaml_value(pinned_val)} -> "
-                        f"{_render_inline_yaml_value(head_val)}  "
-                        f"kept as: {_render_inline_yaml_value(active_overrides[path])}"
+                    _indent = "    "
+                    _before = "\n".join(
+                        f"{_indent}{line}" for line in _render_yaml_value(pinned_val).splitlines()
                     )
+                    _after = "\n".join(
+                        f"{_indent}{line}" for line in _render_yaml_value(head_val).splitlines()
+                    )
+                    _kept = "\n".join(
+                        f"{_indent}{line}"
+                        for line in _render_yaml_value(active_overrides[path]).splitlines()
+                    )
+                    _entry = (
+                        f"{variant.path} ({_format_path(path)})\n"
+                        f"  upstream (before):\n{_before}\n"
+                        f"  upstream (after):\n{_after}\n"
+                        f"  kept as:\n{_kept}\n"
+                    )
+                    print(_entry)
+                    if output_masked is not None:
+                        with output_masked.open("a", encoding="utf-8") as _mf:
+                            _mf.write(_entry)
 
         active_override_comments = {
             p: c for p, c in override_comments.items() if p in active_overrides
@@ -1480,7 +1507,7 @@ def sync_file_entry(
             if check:
                 old_content = variant_text if variant_text else None
                 diff_text = _build_unified_diff(variant_abs, old_content, variant_content)
-                print(f"[sync] Drift detail: {variant.path}")
+                print(f"[[sync-params]] Drift detected: {variant.path}")
                 if diff_text:
                     print(diff_text)
 
@@ -1493,6 +1520,7 @@ def run_sync(
     check: bool,
     footer: bool = False,
     verbose: bool = True,
+    output_masked: "Path | None" = None,
 ) -> int:
     """Run the full sync pipeline for *category* and return an exit code.
 
@@ -1522,13 +1550,13 @@ def run_sync(
             total_repos += 1
             resolved_ref = resolve_ref(repo_entry.repository, repo_entry.ref)
             if verbose:
-                print(f"[sync] Cloning {repo_entry.repository}@{resolved_ref}")
+                print(f"[[sync-params]] Cloning {repo_entry.repository}@{resolved_ref}")
             repo_dir = clone_repository(repo_entry.repository, resolved_ref, temp_root)
 
             for file_entry in repo_entry.files:
                 total_files += 1
                 if verbose:
-                    print(f"[sync] Processing {repo_entry.repository}:{file_entry.source}")
+                    print(f"[[sync-params]] Processing {repo_entry.repository}:{file_entry.source}")
                 before_variants = changed_variants
                 changed_variants_delta = sync_file_entry(
                     workspace_root=workspace_root,
@@ -1539,16 +1567,17 @@ def run_sync(
                     source_repo_dir=repo_dir,
                     check=check,
                     footer=footer,
+                    output_masked=output_masked,
                 )
                 changed_variants += changed_variants_delta
                 if not check and changed_variants > before_variants:
-                    print(f"[sync] Updated variant(s) for source: {file_entry.source}")
+                    print(f"[[sync-params]] Updated variant(s) for source: {file_entry.source}")
 
     print(
-        f"[sync] repositories={total_repos} files={total_files} variants_changed={changed_variants}"
+        f"[[sync-params]] Done: repositories={total_repos} files={total_files} variants_changed={changed_variants}"
     )
     if check and changed_variants > 0:
-        print("[sync] Drift detected (details shown above).")
+        print("[[sync-params]] Drift detected (details shown above).")
         return 1
     return 0
 
@@ -1586,6 +1615,13 @@ def main() -> int:
             "content. Disabled by default to keep variant files compact."
         ),
     )
+    parser.add_argument(
+        "--output-masked",
+        type=Path,
+        default=None,
+        metavar="FILE",
+        help="Also write masked-change entries to FILE in addition to stdout.",
+    )
     args = parser.parse_args()
     config_path = args.config if args.config.is_absolute() else (Path.cwd() / args.config)
     if not config_path.exists():
@@ -1596,6 +1632,7 @@ def main() -> int:
         check=args.check,
         footer=args.footer,
         verbose=True,
+        output_masked=args.output_masked,
     )
 
 
@@ -1603,5 +1640,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except SyncError as exc:
-        print(f"[sync] ERROR: {exc}", file=sys.stderr)
+        print(f"[[sync-params]] Error: {exc}", file=sys.stderr)
         sys.exit(2)
