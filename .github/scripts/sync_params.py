@@ -363,12 +363,16 @@ def _render_inline_yaml_value(value: Any) -> str:
 def _render_yaml_value(value: Any) -> str:
     """Render *value* as YAML, preserving its natural round-trip style.
 
+    Uses a fresh YAML instance to avoid mutating the global ``_YAML_RT`` state.
+
     Example:
         value = 42
         returns "42"
     """
+    y = YAML()
+    y.default_flow_style = None
     stream = io.StringIO()
-    _YAML_RT.dump(value, stream)
+    y.dump(value, stream)
     # ruamel appends "\n...\n" (YAML document-end marker) when dumping bare scalars;
     # strip it so the output stays on a single line for scalar values.
     return stream.getvalue().rstrip("\n").removesuffix("\n...")
