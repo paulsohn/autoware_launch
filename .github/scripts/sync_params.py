@@ -1042,7 +1042,7 @@ def build_variant_header(source_url: str) -> str:
         returns a header string containing "# Source: https://github.com/org/repo/blob/abc/config/file.yaml"
     """
     lines = [
-        "# This file is managed by workflow.",
+        "# This file is managed by sync-params workflow.",
         f"# Keys marked with '{OVERRIDE_MARKER}' or '# {{OVERRIDE: reason}}' are persisted as variant overrides.",
         "# 'reason' can be any single-line text without braces.",
         f"# To keep local changes, annotate fields with '# {OVERRIDE_MARKER}' or '# {{OVERRIDE: reason}}'.",

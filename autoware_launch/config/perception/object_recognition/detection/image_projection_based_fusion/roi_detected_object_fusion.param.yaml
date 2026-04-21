@@ -1,4 +1,4 @@
-# This file is managed by workflow.
+# This file is managed by sync-params workflow.
 # Keys marked with '{OVERRIDE}' or '# {OVERRIDE: reason}' are persisted as variant overrides.
 # 'reason' can be any single-line text without braces.
 # To keep local changes, annotate fields with '# {OVERRIDE}' or '# {OVERRIDE: reason}'.

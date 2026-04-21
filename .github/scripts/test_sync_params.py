@@ -288,7 +288,7 @@ perception: []
         header = build_variant_header(
             source_url="https://github.com/org/repo/blob/abc123/path/to/file.yaml",
         )
-        self.assertIn("managed by workflow", header)
+        self.assertIn("managed by sync-params workflow", header)
         self.assertIn("https://github.com/org/repo/blob/abc123/path/to/file.yaml", header)
 
     def test_build_embedded_original_section(self) -> None:
