@@ -369,7 +369,9 @@ def _render_yaml_value(value: Any) -> str:
     """
     stream = io.StringIO()
     _YAML_RT.dump(value, stream)
-    return stream.getvalue().rstrip("\n")
+    # ruamel appends "\n...\n" (YAML document-end marker) when dumping bare scalars;
+    # strip it so the output stays on a single line for scalar values.
+    return stream.getvalue().rstrip("\n").removesuffix("\n...")
 
 
 def _find_first_value_line(lines: list[str], key_line_idx: int, key_indent: int) -> int | None:
