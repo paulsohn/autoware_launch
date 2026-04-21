@@ -3,7 +3,7 @@
 # 'reason' can be any single-line text without braces.
 # To keep local changes, annotate fields with '# {OVERRIDE}' or '# {OVERRIDE: reason}'.
 #
-# Source: https://github.com/autowarefoundation/autoware_universe/blob/5f8a2a267517bfb4e3cdac0263a38eef53dc982e/perception/autoware_image_projection_based_fusion/config/roi_cluster_fusion.param.yaml
+# Source: https://github.com/autowarefoundation/autoware_universe/blob/d351e7c064cfd8e985d9202734a2cd96be0bc4c7/perception/autoware_image_projection_based_fusion/config/roi_cluster_fusion.param.yaml
 
 /**:
   ros__parameters:
@@ -24,3 +24,9 @@
       BICYCLE : 0.65
       PEDESTRIAN : 0.4 # {OVERRIDE}
     remove_unknown: false # {OVERRIDE}
+
+    # Pedestrian size validation parameters
+    pedestrian_size_validation:
+      enable: true                    # Enable pedestrian size validation (3D size check)
+      min_width: 0.3                  # Minimum width [m] (shoulder width)
+      max_width: 1.0                  # Maximum width [m] (with bags/umbrella)
