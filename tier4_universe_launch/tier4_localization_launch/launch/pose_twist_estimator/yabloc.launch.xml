@@ -4,21 +4,6 @@
   <arg name="src_image" default="/sensing/camera/traffic_light/image_raw"/>
   <arg name="src_info" default="/sensing/camera/traffic_light/camera_info"/>
 
-  <!-- default parameter path -->
-  <!-- initializer -->
-  <arg name="camera_pose_initializer_param_path" default="$(find-pkg-share yabloc_pose_initializer)/config/camera_pose_initializer.param.yaml"/>
-  <!-- particle filter-->
-  <arg name="camera_particle_corrector_param_path" default="$(find-pkg-share yabloc_particle_filter)/config/camera_particle_corrector.param.yaml"/>
-  <arg name="gnss_particle_corrector_param_path" default="$(find-pkg-share yabloc_particle_filter)/config/gnss_particle_corrector.param.yaml"/>
-  <arg name="predictor_param_path" default="$(find-pkg-share yabloc_particle_filter)/config/predictor.param.yaml"/>
-  <!-- image processing -->
-  <arg name="graph_segment_param_path" default="$(find-pkg-share yabloc_image_processing)/config/graph_segment.param.yaml"/>
-  <arg name="segment_filter_param_path" default="$(find-pkg-share yabloc_image_processing)/config/segment_filter.param.yaml"/>
-  <arg name="undistort_param_path" default="$(find-pkg-share yabloc_image_processing)/config/undistort.param.yaml"/>
-  <!-- map -->
-  <arg name="ground_server_param_path" default="$(find-pkg-share yabloc_common)/config/ground_server.param.yaml"/>
-  <arg name="ll2_decomposer_param_path" default="$(find-pkg-share yabloc_common)/config/ll2_decomposer.param.yaml"/>
-
   <let name="input_pose" value="/localization/pose_twist_fusion_filter/pose"/>
 
   <group>
@@ -27,13 +12,21 @@
     <!-- initializer -->
     <group>
       <push-ros-namespace namespace="initializer"/>
-      <include file="$(find-pkg-share yabloc_pose_initializer)/launch/yabloc_pose_initializer.launch.xml"/>
+      <include file="$(find-pkg-share yabloc_pose_initializer)/launch/yabloc_pose_initializer.launch.xml">
+        <!-- TODO: undeclared arg -->
+        <arg name="camera_pose_initializer_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/camera_pose_initializer.param.yaml"/>
+      </include>
     </group>
 
     <!-- particle filter -->
     <group>
       <push-ros-namespace namespace="pf"/>
-      <include file="$(find-pkg-share yabloc_particle_filter)/launch/yabloc_particle_filter.launch.xml"/>
+      <include file="$(find-pkg-share yabloc_particle_filter)/launch/yabloc_particle_filter.launch.xml">
+        <!-- TODO: undeclared args -->
+        <arg name="predictor_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/predictor.param.yaml"/>
+        <arg name="camera_particle_corrector_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/camera_particle_corrector.param.yaml"/>
+        <arg name="gnss_particle_corrector_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/gnss_particle_corrector.param.yaml"/>
+      </include>
     </group>
 
     <!-- image processing -->
@@ -43,6 +36,10 @@
         <arg name="src_image" value="$(var src_image)"/>
         <arg name="src_info" value="$(var src_info)"/>
         <arg name="input_pose" value="$(var input_pose)"/>
+        <!-- TODO: undeclared args -->
+        <arg name="graph_segment_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/graph_segment.param.yaml"/>
+        <arg name="segment_filter_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/segment_filter.param.yaml"/>
+        <arg name="undistort_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/undistort.param.yaml"/>
       </include>
     </group>
 
@@ -51,6 +48,9 @@
       <push-ros-namespace namespace="map"/>
       <include file="$(find-pkg-share yabloc_common)/launch/yabloc_common.launch.xml">
         <arg name="input_particle_pose" value="$(var input_pose)"/>
+        <!-- TODO: undeclared args -->
+        <arg name="ground_server_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/ground_server.param.yaml"/>
+        <arg name="ll2_decomposer_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/ll2_decomposer.param.yaml"/>
       </include>
     </group>
 

@@ -13,7 +13,7 @@
 
       <arg name="client_map_loader" value="/map/get_differential_pointcloud_map"/>
 
-      <arg name="param_file" value="$(var ndt_scan_matcher/ndt_scan_matcher_param_path)"/>
+      <arg name="param_file" value="$(find-pkg-share autoware_launch_config)/config/localization/ndt_scan_matcher/ndt_scan_matcher.param.yaml"/>
     </include>
   </group>
 </launch>
