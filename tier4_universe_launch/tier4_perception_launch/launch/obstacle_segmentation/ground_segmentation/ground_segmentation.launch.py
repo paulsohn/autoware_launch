@@ -32,11 +32,13 @@ class GroundSegmentationPipeline:
     def __init__(self, context):
         self.context = context
         self.vehicle_info = self.get_vehicle_info()
-        ground_segmentation_param_path = os.path.join(
-            LaunchConfiguration("obstacle_segmentation_ground_segmentation_param_path").perform(
-                context
-            ),
-        )
+        ground_segmentation_param_path = PathJoinSubstitution(
+            [
+                FindPackageShare("autoware_launch_config"),
+                "config/perception/obstacle_segmentation/ground_segmentation/ground_segmentation.param.yaml",
+            ]
+        ).perform(context)
+
         with open(ground_segmentation_param_path, "r") as f:
             self.ground_segmentation_param = yaml.safe_load(f)["/**"]["ros__parameters"]
 
@@ -391,13 +393,10 @@ class GroundSegmentationPipeline:
                         "use_inpaint": True,
                         "inpaint_radius": 1.0,
                         "lane_margin": 2.0,
-                        "param_file_path": PathJoinSubstitution(
-                            [
-                                LaunchConfiguration(
-                                    "obstacle_segmentation_ground_segmentation_elevation_map_param_path"
-                                ).perform(context),
-                            ]
-                        ),
+                        "param_file_path": [
+                            FindPackageShare("autoware_launch_config"),
+                            "/config/perception/obstacle_segmentation/ground_segmentation/elevation_map_parameters.yaml",
+                        ],
                         "elevation_map_directory": PathJoinSubstitution(
                             [
                                 FindPackageShare("autoware_elevation_map_loader"),

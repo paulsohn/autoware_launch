@@ -20,18 +20,21 @@ from launch.actions import SetLaunchConfiguration
 from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
 from launch.substitutions import LaunchConfiguration
+from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
+from launch_ros.substitutions import FindPackageShare
 import yaml
 
 
 class PointcloudMapFilterPipeline:
     def __init__(self, context):
-        pointcloud_map_filter_param_path = os.path.join(
-            LaunchConfiguration(
-                "object_recognition_detection_pointcloud_map_filter_param_path"
-            ).perform(context),
-        )
+        pointcloud_map_filter_param_path = PathJoinSubstitution(
+            [
+                FindPackageShare("autoware_launch_config"),
+                "config/perception/object_recognition/detection/pointcloud_filter/pointcloud_map_filter.param.yaml",
+            ]
+        ).perform(context)
         with open(pointcloud_map_filter_param_path, "r") as f:
             self.pointcloud_map_filter_param = yaml.safe_load(f)["/**"]["ros__parameters"]
         self.voxel_size = self.pointcloud_map_filter_param["down_sample_voxel_size"]

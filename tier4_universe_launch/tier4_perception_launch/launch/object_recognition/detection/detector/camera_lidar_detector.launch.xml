@@ -53,9 +53,6 @@
   <arg name="segmentation_pointcloud_fusion_camera_ids"/>
   <arg name="image_topic_name"/>
 
-  <arg name="sync_param_path"/>
-  <arg name="voxel_grid_based_euclidean_param_path"/>
-
   <arg name="node/pointcloud_container"/>
   <arg name="input/pointcloud"/>
   <arg name="input/pointcloud_map/pointcloud"/>
@@ -155,7 +152,7 @@
       <arg name="model_param_path" value="$(var lidar_model_param_path)/$(var lidar_detection_model_name).param.yaml"/>
       <arg name="ml_package_param_path" value="$(var model_path)/$(var lidar_detection_model_name)_ml_package.param.yaml"/>
       <arg name="class_remapper_param_path" value="$(var model_path)/detection_class_remapper.param.yaml"/>
-      <arg name="common_param_path" value="$(var pointpainting_fusion_common_param_path)"/>
+      <arg name="common_param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/image_projection_based_fusion/pointpainting_common.param.yaml"/>
       <arg name="use_pointcloud_container" value="true"/>
       <arg name="pointcloud_container_name" value="$(var node/pointcloud_container)"/>
     </include>
@@ -169,7 +166,7 @@
       <arg name="output/pointcloud" value="$(var segmentation_based_filtered/output/pointcloud)"/>
       <arg name="image_topic_name" value="$(var image_topic_name)"/>
       <arg name="fusion_camera_ids" value="$(var segmentation_pointcloud_fusion_camera_ids)"/>
-      <arg name="sync_param_path" value="$(var sync_param_path)"/>
+      <arg name="sync_param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/image_projection_based_fusion/fusion_common.param.yaml"/>
     </include>
   </group>
 
@@ -182,7 +179,7 @@
         <arg name="output_clusters" value="$(var euclidean_cluster/output/clusters)"/>
         <arg name="use_low_height_cropbox" value="$(var use_low_height_cropbox)"/>
         <arg name="use_pointcloud_container" value="false"/>
-        <arg name="voxel_grid_based_euclidean_param_path" value="$(var voxel_grid_based_euclidean_param_path)"/>
+        <arg name="voxel_grid_based_euclidean_param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/clustering/voxel_grid_based_euclidean_cluster.param.yaml"/>
       </include>
     </group>
 
@@ -232,7 +229,7 @@
           <arg name="input/concatenation_info" value="$(var input/concatenation_info)"/>
           <arg name="input/clusters" value="$(var roi_cluster_fusion/input/clusters)"/>
           <arg name="output/clusters" value="$(var roi_cluster_fusion/output/clusters)"/>
-          <arg name="param_path" value="$(var roi_cluster_fusion_param_path)"/>
+          <arg name="param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/image_projection_based_fusion/roi_cluster_fusion.param.yaml"/>
         </include>
       </group>
 

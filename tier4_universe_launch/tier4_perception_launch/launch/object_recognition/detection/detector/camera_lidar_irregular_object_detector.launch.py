@@ -33,12 +33,23 @@ class SmallUnknownPipeline:
     def __init__(self, context):
         self.context = context
         self.vehicle_info = self.get_vehicle_info()
-        with open(
-            LaunchConfiguration("irregular_object_detector_param_path").perform(context), "r"
-        ) as f:
+
+        irregular_object_detector_param_path = PathJoinSubstitution(
+            [
+                FindPackageShare("autoware_launch_config"),
+                "config/perception/object_recognition/detection/irregular_object_detection/irregular_object_detector.param.yaml",
+            ]
+        ).perform(context)
+        with open(irregular_object_detector_param_path, "r") as f:
             self.irregular_object_detector_param = yaml.safe_load(f)["/**"]["ros__parameters"]
 
-        with open(LaunchConfiguration("sync_param_path").perform(context), "r") as f:
+        sync_param_path = PathJoinSubstitution(
+            [
+                FindPackageShare("autoware_launch_config"),
+                "config/perception/object_recognition/detection/image_projection_based_fusion/fusion_common.param.yaml",
+            ]
+        ).perform(context)
+        with open(sync_param_path, "r") as f:
             self.roi_pointcloud_fusion_sync_param = yaml.safe_load(f)["/**"]["ros__parameters"]
 
         self.roi_pointcloud_fusion_param = self.irregular_object_detector_param[
@@ -231,20 +242,6 @@ def generate_launch_description():
     add_launch_arg("image_topic_name", "image_raw")
     add_launch_arg("pointcloud_container_name", "pointcloud_container")
     add_launch_arg("use_pointcloud_container", "True")
-    add_launch_arg(
-        "irregular_object_detector_param_path",
-        [
-            FindPackageShare("autoware_launch_config"),
-            "/config/perception/object_recognition/detection/irregular_object_detection/irregular_object_detector.param.yaml",
-        ],
-    )
-    add_launch_arg(
-        "sync_param_path",
-        [
-            FindPackageShare("autoware_image_projection_based_fusion"),
-            "/config/fusion_common.param.yaml",
-        ],
-    )
 
     set_container_executable = SetLaunchConfiguration(
         "container_executable",

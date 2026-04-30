@@ -36,17 +36,16 @@ def create_traffic_light_map_based_detector(namespace, context):
         else f"/perception/traffic_light_recognition/{namespace}/detection/rois"
     )
 
-    each_namespace_param_path = LaunchConfiguration("param_path").perform(context)
-    each_namespace_param_path = each_namespace_param_path.replace(
-        "TRAFFIC_LIGHT_RECOGNITION_CAMERA_NAMESPACE", namespace
-    )
     arguments = {
         "input/vector_map": LaunchConfiguration("input/vector_map"),
         "input/camera_info": f"/sensing/camera/{namespace}/camera_info",
         "input/route": LaunchConfiguration("input/route"),
         "expect/rois": "expect/rois",
         "output/rois": output_rois,
-        "param_path": each_namespace_param_path,
+        "param_path": [
+            FindPackageShare("autoware_launch_config"),
+            f"/config/perception/traffic_light_recognition/traffic_light_map_based_detector/{namespace}_traffic_light_map_based_detector.param.yaml",
+        ],
     }.items()
 
     group = GroupAction(
@@ -96,7 +95,6 @@ def generate_launch_description():
     add_launch_arg("input/vector_map")
     add_launch_arg("input/route")
     add_launch_arg("use_high_accuracy_detection")
-    add_launch_arg("param_path")
 
     return launch.LaunchDescription(
         [

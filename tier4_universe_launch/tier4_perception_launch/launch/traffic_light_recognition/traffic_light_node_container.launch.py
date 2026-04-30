@@ -28,6 +28,7 @@ from launch_ros.actions import LoadComposableNodes
 from launch_ros.actions import PushRosNamespace
 from launch_ros.descriptions import ComposableNode
 from launch_ros.parameter_descriptions import ParameterFile
+from launch_ros.substitutions import FindPackageShare
 import yaml
 
 
@@ -74,33 +75,8 @@ def create_traffic_light_node_container(namespace, context, *args, **kwargs):
         "output/traffic_signals": f"/perception/traffic_light_recognition/{namespace}/classification/traffic_signals",
     }
 
-    # parameter files
-    traffic_light_whole_image_detector_param = ParameterFile(
-        param_file=LaunchConfiguration("yolox_traffic_light_detector_param_path").perform(context),
-        allow_substs=True,
-    )
-    traffic_light_fine_detector_param = ParameterFile(
-        param_file=LaunchConfiguration("traffic_light_fine_detector_param_path").perform(context),
-        allow_substs=True,
-    )
-    car_traffic_light_classifier_param = ParameterFile(
-        param_file=LaunchConfiguration("car_traffic_light_classifier_param_path").perform(context),
-        allow_substs=True,
-    )
-    pedestrian_traffic_light_classifier_param = ParameterFile(
-        param_file=LaunchConfiguration("pedestrian_traffic_light_classifier_param_path").perform(
-            context
-        ),
-        allow_substs=True,
-    )
     classification_lamp_recognizer_ml_param = ParameterFile(
-        param_file=LaunchConfiguration("classification/lamp_recognizer_ml_param_path").perform(
-            context
-        ),
-        allow_substs=True,
-    )
-    traffic_light_roi_visualizer_param = ParameterFile(
-        param_file=LaunchConfiguration("traffic_light_roi_visualizer_param_path").perform(context),
+        param_file=LaunchConfiguration("classification/lamp_recognizer_ml_param_path"),
         allow_substs=True,
     )
 
@@ -116,7 +92,13 @@ def create_traffic_light_node_container(namespace, context, *args, **kwargs):
                 name="car_traffic_light_classifier",
                 namespace="classification",
                 parameters=[
-                    car_traffic_light_classifier_param,
+                    ParameterFile(
+                        param_file=[
+                            FindPackageShare("autoware_launch_config"),
+                            "/config/perception/traffic_light_recognition/traffic_light_classifier/car_traffic_light_classifier.param.yaml",
+                        ],
+                        allow_substs=True,
+                    ),
                     classification_lamp_recognizer_ml_param,
                     {
                         "build_only": False,
@@ -142,7 +124,13 @@ def create_traffic_light_node_container(namespace, context, *args, **kwargs):
                 name="pedestrian_traffic_light_classifier",
                 namespace="classification",
                 parameters=[
-                    pedestrian_traffic_light_classifier_param,
+                    ParameterFile(
+                        param_file=[
+                            FindPackageShare("autoware_launch_config"),
+                            "/config/perception/traffic_light_recognition/traffic_light_classifier/pedestrian_traffic_light_classifier.param.yaml",
+                        ],
+                        allow_substs=True,
+                    ),
                     classification_lamp_recognizer_ml_param,
                     {
                         "build_only": False,
@@ -167,7 +155,13 @@ def create_traffic_light_node_container(namespace, context, *args, **kwargs):
                 plugin="autoware::traffic_light::TrafficLightRoiVisualizerNode",
                 name="traffic_light_roi_visualizer",
                 parameters=[
-                    traffic_light_roi_visualizer_param,
+                    ParameterFile(
+                        param_file=[
+                            FindPackageShare("autoware_launch_config"),
+                            "/config/perception/traffic_light_recognition/traffic_light_visualization/traffic_light_roi_visualizer.param.yaml",
+                        ],
+                        allow_substs=True,
+                    ),
                     {
                         "use_high_accuracy_detection": LaunchConfiguration(
                             "use_high_accuracy_detection"
@@ -227,7 +221,13 @@ def create_traffic_light_node_container(namespace, context, *args, **kwargs):
                 name="traffic_light_fine_detector",
                 namespace=f"{namespace}/detection",
                 parameters=[
-                    traffic_light_fine_detector_param,
+                    ParameterFile(
+                        param_file=[
+                            FindPackageShare("autoware_launch_config"),
+                            "/config/perception/traffic_light_recognition/traffic_light_fine_detector/traffic_light_fine_detector.param.yaml"
+                        ],
+                        allow_substs=True,
+                    ),
                     {
                         "build_only": False,
                         "label_path": LaunchConfiguration("fine_detection/label_path"),
@@ -266,7 +266,13 @@ def create_traffic_light_node_container(namespace, context, *args, **kwargs):
                 name=internal_node_name,
                 namespace=f"{namespace}/detection",
                 parameters=[
-                    traffic_light_whole_image_detector_param,
+                    ParameterFile(
+                        param_file=[
+                            FindPackageShare("autoware_launch_config"),
+                            "/config/perception/traffic_light_recognition/tensorrt_yolox/yolox_traffic_light_detector.param.yaml"
+                        ],
+                        allow_substs=True,
+                    ),
                     {
                         "build_only": False,
                         "label_path": LaunchConfiguration("whole_image_detection/label_path"),
@@ -361,12 +367,10 @@ def generate_launch_description():
     add_launch_arg("whole_image_detection/model_path")
     add_launch_arg("whole_image_detection/label_path")
     add_launch_arg("whole_image_detection/yolox_roi_label_remap_path")
-    add_launch_arg("yolox_traffic_light_detector_param_path")
 
     # traffic_light_fine_detector
     add_launch_arg("fine_detection/model_path")
     add_launch_arg("fine_detection/label_path")
-    add_launch_arg("traffic_light_fine_detector_param_path")
 
     # traffic_light_classifier
     add_launch_arg("classification/car/model_path")
@@ -384,11 +388,6 @@ def generate_launch_description():
         default_value="1",
         description="0=HSVFilter, 1=CNN, 2=LampRecognizer",
     )
-    add_launch_arg("car_traffic_light_classifier_param_path")
-    add_launch_arg("pedestrian_traffic_light_classifier_param_path")
-
-    # traffic_light_roi_visualizer
-    add_launch_arg("traffic_light_roi_visualizer_param_path")
 
     add_launch_arg("use_intra_process", "False")
     add_launch_arg("use_multithread", "False")

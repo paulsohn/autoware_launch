@@ -37,7 +37,10 @@ def create_traffic_light_occlusion_predictor(namespace):
         "input/car/traffic_signals": "car/traffic_signals",
         "input/pedestrian/traffic_signals": "pedestrian/traffic_signals",
         "output/traffic_signals": f"/perception/traffic_light_recognition/{namespace}/classification/traffic_signals",
-        "param_path": LaunchConfiguration("param_path"),
+        "param_path": [
+            FindPackageShare("autoware_launch_config"),
+            "/config/perception/traffic_light_recognition/traffic_light_occlusion_predictor/traffic_light_occlusion_predictor.param.yaml"
+        ],
     }.items()
 
     group = GroupAction(
@@ -85,7 +88,6 @@ def generate_launch_description():
     add_launch_arg("camera_namespaces")
     add_launch_arg("input/cloud")
     add_launch_arg("input/vector_map")
-    add_launch_arg("param_path")
 
     return launch.LaunchDescription(
         [

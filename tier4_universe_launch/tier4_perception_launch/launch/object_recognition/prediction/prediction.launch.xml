@@ -14,7 +14,7 @@
       <include file="$(find-pkg-share autoware_map_based_prediction)/launch/map_based_prediction.launch.xml">
         <arg name="output_topic" value="/perception/object_recognition/objects"/>
         <arg name="input_topic" value="$(var input/objects)"/>
-        <arg name="param_path" value="$(var object_recognition_prediction_map_based_prediction_param_path)"/>
+        <arg name="param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/prediction/map_based_prediction.param.yaml"/>
       </include>
     </group>
     <!-- simpl -->
