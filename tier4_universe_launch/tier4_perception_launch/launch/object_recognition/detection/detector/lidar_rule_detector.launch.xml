@@ -1,8 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- Current namespace -->
-  <arg name="ns" description="current namespace"/>
-
   <!-- External interfaces -->
   <arg name="node/pointcloud_container"/>
   <arg name="input/pointcloud_map/pointcloud"/>
@@ -12,8 +9,8 @@
 
   <!-- Internal interfaces -->
   <let name="euclidean_cluster/input/pointcloud" value="$(var input/pointcloud_map/pointcloud)"/>
-  <let name="euclidean_cluster/output/clusters" value="$(var ns)/clustering/clusters"/>
-  <let name="shape_estimation/input/objects" value="$(var ns)/clustering/clusters"/>
+  <let name="euclidean_cluster/output/clusters" value="$(var ros_namespace)/clustering/clusters"/>
+  <let name="shape_estimation/input/objects" value="$(var ros_namespace)/clustering/clusters"/>
   <let name="shape_estimation/output/objects" value="$(var output/cluster_objects)"/>
   <let name="detected_object_feature_remover/input" value="$(var output/cluster_objects)"/>
   <let name="detected_object_feature_remover/output" value="$(var output/objects)"/>

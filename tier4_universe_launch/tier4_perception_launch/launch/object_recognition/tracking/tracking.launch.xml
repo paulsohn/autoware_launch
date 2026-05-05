@@ -1,8 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- Current namespace -->
-  <let name="ns" value="/perception/object_recognition/tracking"/>
-
   <!-- Pipeline junctions -->
   <arg name="mode" default="lidar">
     <choice value="camera"/>
@@ -44,19 +41,19 @@
   <arg name="input/camera_vru/channel" default="camera_vru"/>
   <arg name="input/camera_vru/objects" default="/perception/object_recognition/detection/camera_vru/objects"/>
 
-  <arg name="output/objects" default="$(var ns)/objects"/>
-  <arg name="output/merged_objects" default="$(var ns)/merged_objects"/>
+  <arg name="output/objects" default="$(var ros_namespace)/objects"/>
+  <arg name="output/merged_objects" default="$(var ros_namespace)/merged_objects"/>
 
   <group unless="$(var use_multi_channel_tracker_merger)">
     <!-- Internal interface -->
     <let name="radar_tracked_object_sorter/input/objects" value="$(var input/radar/tracked_objects)"/>
-    <let name="radar_tracked_object_sorter/output/objects" value="$(var ns)/radar/sorted_tracked_objects"/>
+    <let name="radar_tracked_object_sorter/output/objects" value="$(var ros_namespace)/radar/sorted_tracked_objects"/>
 
     <let name="radar_tracked_object_lanelet_filter/input/object" value="$(var radar_tracked_object_sorter/output/objects)"/>
-    <let name="radar_tracked_object_lanelet_filter/output/object" value="$(var ns)/radar/tracked_objects"/>
+    <let name="radar_tracked_object_lanelet_filter/output/object" value="$(var ros_namespace)/radar/tracked_objects"/>
 
     <let name="multi_object_tracker/output/objects" value="$(var output/objects)" unless="$(var use_radar_tracking_fusion)"/>
-    <let name="multi_object_tracker/output/objects" value="$(var ns)/near_objects" if="$(var use_radar_tracking_fusion)"/>
+    <let name="multi_object_tracker/output/objects" value="$(var ros_namespace)/near_objects" if="$(var use_radar_tracking_fusion)"/>
 
     <let name="tracker_merger/input/main_objects" value="$(var multi_object_tracker/output/objects)"/>
     <let name="tracker_merger/input/sub_objects" value="$(var radar_tracked_object_lanelet_filter/output/object)"/>

@@ -1,10 +1,6 @@
 <?xml version="1.0"?>
 <launch>
   <!-- cspell: ignore semseg -->
-
-  <!-- Current namespace -->
-  <let name="ns" value="/perception/object_recognition/detection"/>
-
   <!-- Pipeline junctions -->
   <arg name="mode">
     <choice value="camera"/>
@@ -92,23 +88,23 @@
   <arg name="output/objects" default="objects"/>
 
   <!-- internal interfaces -->
-  <let name="pointcloud_filter/output/pointcloud" value="$(var ns)/pointcloud_map_filtered/pointcloud"/>
-  <let name="lidar_ml_detector/output/objects" value="$(var ns)/$(var lidar_detection_model_type)/objects"/>
-  <let name="lidar_ml_detector/output/short_range_objects" value="$(var ns)/$(var lidar_short_range_detection_model_type)/objects"/>
-  <let name="lidar_rule_detector/output/cluster_objects" value="$(var ns)/clustering/objects_with_feature"/>
-  <let name="lidar_rule_detector/output/objects" value="$(var ns)/clustering/objects"/>
-  <let name="camera_lidar_rule_detector/output/objects" value="$(var ns)/clustering/camera_lidar_fusion/objects"/>
-  <let name="camera_lidar_rule_detector/output/cluster_objects" value="$(var ns)/clustering/objects_with_feature"/>
-  <let name="tracker_based_detector/input/clusters" value="$(var ns)/clustering/objects_with_feature"/>
-  <let name="tracker_based_detector/output/objects" value="$(var ns)/detection_by_tracker/objects"/>
-  <let name="lidar_object_filter/output/objects" value="$(var ns)/$(var lidar_detection_model_type)/validation/objects"/>
-  <let name="camera_lidar_object_filter/output/objects" value="$(var ns)/clustering/camera_lidar_fusion/filtered/objects"/>
-  <let name="radar_pipeline/output/objects" value="$(var ns)/radar/far_objects"/>
-  <let name="radar_object_filter/output/objects" value="$(var ns)/radar/far_objects"/>
-  <let name="camera_vru_detector/output/objects" value="$(var ns)/camera_vru/objects"/>
+  <let name="pointcloud_filter/output/pointcloud" value="$(var ros_namespace)/pointcloud_map_filtered/pointcloud"/>
+  <let name="lidar_ml_detector/output/objects" value="$(var ros_namespace)/$(var lidar_detection_model_type)/objects"/>
+  <let name="lidar_ml_detector/output/short_range_objects" value="$(var ros_namespace)/$(var lidar_short_range_detection_model_type)/objects"/>
+  <let name="lidar_rule_detector/output/cluster_objects" value="$(var ros_namespace)/clustering/objects_with_feature"/>
+  <let name="lidar_rule_detector/output/objects" value="$(var ros_namespace)/clustering/objects"/>
+  <let name="camera_lidar_rule_detector/output/objects" value="$(var ros_namespace)/clustering/camera_lidar_fusion/objects"/>
+  <let name="camera_lidar_rule_detector/output/cluster_objects" value="$(var ros_namespace)/clustering/objects_with_feature"/>
+  <let name="tracker_based_detector/input/clusters" value="$(var ros_namespace)/clustering/objects_with_feature"/>
+  <let name="tracker_based_detector/output/objects" value="$(var ros_namespace)/detection_by_tracker/objects"/>
+  <let name="lidar_object_filter/output/objects" value="$(var ros_namespace)/$(var lidar_detection_model_type)/validation/objects"/>
+  <let name="camera_lidar_object_filter/output/objects" value="$(var ros_namespace)/clustering/camera_lidar_fusion/filtered/objects"/>
+  <let name="radar_pipeline/output/objects" value="$(var ros_namespace)/radar/far_objects"/>
+  <let name="radar_object_filter/output/objects" value="$(var ros_namespace)/radar/far_objects"/>
+  <let name="camera_vru_detector/output/objects" value="$(var ros_namespace)/camera_vru/objects"/>
 
   <let name="irregular_object_detector_ns" value="irregular_object"/>
-  <let name="irregular_object_pipeline/output/objects" value="$(var ns)/$(var irregular_object_detector_ns)/objects"/>
+  <let name="irregular_object_pipeline/output/objects" value="$(var ros_namespace)/$(var irregular_object_detector_ns)/objects"/>
 
   <let name="object_validator/input/obstacle_pointcloud" value="$(var pointcloud_filter/output/pointcloud)" if="$(var use_pointcloud_map)"/>
   <let name="object_validator/input/obstacle_pointcloud" value="$(var input/obstacle_segmentation/pointcloud)" unless="$(var use_pointcloud_map)"/>
@@ -145,8 +141,8 @@
       <let name="switch/filter/camera_lidar_object" value="true"/>
       <let name="switch/detector/radar" value="true"/>
       <!-- multi-channel only supports radar detected objects -->
-      <let name="camera_lidar_rule_detector/output/objects" value="$(var ns)/clustering/camera_lidar_fusion/unfiltered/objects"/>
-      <let name="camera_lidar_object_filter/output/objects" value="$(var ns)/clustering/camera_lidar_fusion/objects"/>
+      <let name="camera_lidar_rule_detector/output/objects" value="$(var ros_namespace)/clustering/camera_lidar_fusion/unfiltered/objects"/>
+      <let name="camera_lidar_object_filter/output/objects" value="$(var ros_namespace)/clustering/camera_lidar_fusion/objects"/>
     </group>
   </group>
   <group scoped="false" if="$(eval '&quot;$(var mode)&quot;==&quot;camera_lidar_fusion&quot;')">
@@ -156,8 +152,8 @@
     <let name="switch/merger/camera_lidar" value="true" unless="$(var use_multi_channel_tracker_merger)"/>
     <group scoped="false" if="$(var use_multi_channel_tracker_merger)">
       <let name="switch/filter/camera_lidar_object" value="true"/>
-      <let name="camera_lidar_rule_detector/output/objects" value="$(var ns)/clustering/camera_lidar_fusion/unfiltered/objects"/>
-      <let name="camera_lidar_object_filter/output/objects" value="$(var ns)/clustering/camera_lidar_fusion/objects"/>
+      <let name="camera_lidar_rule_detector/output/objects" value="$(var ros_namespace)/clustering/camera_lidar_fusion/unfiltered/objects"/>
+      <let name="camera_lidar_object_filter/output/objects" value="$(var ros_namespace)/clustering/camera_lidar_fusion/objects"/>
     </group>
   </group>
   <group scoped="false" if="$(eval '&quot;$(var mode)&quot;==&quot;lidar_radar_fusion&quot;')">
@@ -183,7 +179,6 @@
   <group if="$(var switch/detector/camera_lidar)">
     <!-- Camera-Lidar detectors -->
     <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detector/camera_lidar_detector.launch.xml">
-      <arg name="ns" value="$(var ns)"/>
       <arg name="number_of_cameras" value="$(var number_of_cameras)"/>
       <arg name="input/camera0/image" value="$(var input/camera0/image)"/>
       <arg name="input/camera0/info" value="$(var input/camera0/info)"/>
@@ -237,9 +232,8 @@
 
   <group if="$(var switch/detector/irregular_object)">
     <!-- Irregular object detector -->
+    <push-ros-namespace namespace="$(var irregular_object_detector_ns)"/>
     <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detector/camera_lidar_irregular_object_detector.launch.xml">
-      <arg name="ns" value="$(var ns)"/>
-      <arg name="pipeline_ns" value="$(var irregular_object_detector_ns)"/>
       <arg name="fusion_camera_ids" value="$(var irregular_object_detector_fusion_camera_ids)"/>
       <arg name="image_topic_name" value="$(var image_topic_name)"/>
       <arg name="input/concatenation_info" value="$(var input/concatenation_info)"/>
@@ -264,7 +258,6 @@
   <group if="$(var switch/detector/lidar_rule)">
     <!-- Lidar rule-based detectors-->
     <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detector/lidar_rule_detector.launch.xml">
-      <arg name="ns" value="$(var ns)"/>
       <arg name="node/pointcloud_container" value="$(var node/pointcloud_container)"/>
       <arg name="input/pointcloud_map/pointcloud" value="$(var pointcloud_filter/output/pointcloud)"/>
       <arg name="input/obstacle_segmentation/pointcloud" value="$(var input/obstacle_segmentation/pointcloud)"/>
@@ -316,7 +309,6 @@
   <group if="$(var switch/detector/camera_vru_detector)">
     <!-- Camera VRU detectors-->
     <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detector/camera_vru_detector.launch.xml">
-      <arg name="ns" value="$(var ns)"/>
       <arg name="rois_ids" value="$(var camera_vru_detector_rois_ids)"/>
       <arg name="input/camera0/rois" value="$(var input/camera0/rois)"/>
       <arg name="input/camera0/info" value="$(var input/camera0/info)"/>

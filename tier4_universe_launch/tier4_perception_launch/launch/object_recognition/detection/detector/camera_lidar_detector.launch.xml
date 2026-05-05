@@ -2,9 +2,6 @@
 <launch>
   <!-- cspell: ignore semseg -->
 
-  <!-- Current namespace -->
-  <arg name="ns" description="current namespace"/>
-
   <!-- Lidar + Camera detector parameters -->
   <arg name="lidar_detection_model_type">
     <choice value="bevfusion"/>
@@ -73,22 +70,22 @@
   <let name="pointpainting/output/objects" value="$(var output/ml_detector/objects)"/>
 
   <let name="segmentation_based_filtered/input/pointcloud" value="$(var input/pointcloud_map/pointcloud)"/>
-  <let name="segmentation_based_filtered/output/pointcloud" value="$(var ns)/segmentation_based_filtered/pointcloud"/>
+  <let name="segmentation_based_filtered/output/pointcloud" value="$(var ros_namespace)/segmentation_based_filtered/pointcloud"/>
 
   <let name="euclidean_cluster/input/pointcloud" value="$(var segmentation_based_filtered/output/pointcloud)" if="$(var use_image_segmentation_based_filter)"/>
   <let name="euclidean_cluster/input/pointcloud" value="$(var input/pointcloud_map/pointcloud)" unless="$(var use_image_segmentation_based_filter)"/>
-  <let name="euclidean_cluster/output/clusters" value="$(var ns)/clustering/clusters"/>
+  <let name="euclidean_cluster/output/clusters" value="$(var ros_namespace)/clustering/clusters"/>
   <let name="shape_estimation1/input/clusters" value="$(var euclidean_cluster/output/clusters)"/>
   <let name="shape_estimation1/output/objects" value="$(var output/clustering/cluster_objects)"/>
 
   <let name="roi_cluster_fusion/input/clusters" value="$(var euclidean_cluster/output/clusters)"/>
-  <let name="roi_cluster_fusion/output/clusters" value="$(var ns)/clustering/camera_lidar_fusion/clusters"/>
+  <let name="roi_cluster_fusion/output/clusters" value="$(var ros_namespace)/clustering/camera_lidar_fusion/clusters"/>
   <let name="low_intensity_cluster_filter/input/clusters" value="$(var roi_cluster_fusion/output/clusters)"/>
-  <let name="low_intensity_cluster_filter/output/clusters" value="$(var ns)/clustering/camera_lidar_fusion/filtered/clusters"/>
+  <let name="low_intensity_cluster_filter/output/clusters" value="$(var ros_namespace)/clustering/camera_lidar_fusion/filtered/clusters"/>
 
   <let name="shape_estimation2/input/clusters" value="$(var roi_cluster_fusion/output/clusters)" unless="$(var use_low_intensity_cluster_filter)"/>
   <let name="shape_estimation2/input/clusters" value="$(var low_intensity_cluster_filter/output/clusters)" if="$(var use_low_intensity_cluster_filter)"/>
-  <let name="shape_estimation2/output/objects" value="$(var ns)/clustering/camera_lidar_fusion/objects_with_feature"/>
+  <let name="shape_estimation2/output/objects" value="$(var ros_namespace)/clustering/camera_lidar_fusion/objects_with_feature"/>
   <let name="detected_object_feature_remover/input/objects_with_feature" value="$(var shape_estimation2/output/objects)"/>
   <let name="detected_object_feature_remover/output/objects" value="$(var output/rule_detector/objects)"/>
 
