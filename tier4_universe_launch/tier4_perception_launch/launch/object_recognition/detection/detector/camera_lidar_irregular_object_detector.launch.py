@@ -25,24 +25,35 @@ from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import LoadComposableNodes
 from launch_ros.actions import Node
 from launch_ros.descriptions import ComposableNode
+from launch_ros.parameter_descriptions import ParameterFile
 from launch_ros.substitutions import FindPackageShare
 import yaml
 
 
 class SmallUnknownPipeline:
     def __init__(self, context):
-        self.context = context
-        self.vehicle_info = self.get_vehicle_info()
+        self.camera_ids = LaunchConfiguration("fusion_camera_ids").perform(context)
+        # convert string to list
+        self.camera_ids = yaml.load(self.camera_ids, Loader=yaml.FullLoader)
 
-        irregular_object_detector_param_path = PathJoinSubstitution(
-            [
-                FindPackageShare("autoware_launch_config"),
-                "config/perception/object_recognition/detection/irregular_object_detection/irregular_object_detector.param.yaml",
-            ]
-        ).perform(context)
-        with open(irregular_object_detector_param_path, "r") as f:
-            self.irregular_object_detector_param = yaml.safe_load(f)["/**"]["ros__parameters"]
+        self.additional_params = {
+            "rois_number": len(self.camera_ids),
+        }
 
+        for index, camera_id in enumerate(self.camera_ids):
+            self.additional_params[f"input/rois{index}"] = (
+                f"/perception/object_recognition/detection/rois{camera_id}"
+            )
+            self.additional_params[f"input/camera_info{index}"] = (
+                f"/sensing/camera/camera{camera_id}/camera_info"
+            )
+            self.additional_params[f"input/image{index}"] = (
+                f"/sensing/camera/camera{camera_id}/image_raw"
+            )
+
+        # Filter configurations used in fusion_camera_ids
+        # TODO: It might be better to pass full configuration lists and let the node handle the filtering
+        # (In which case the below code can be removed and the param file can directly be passed to the node)
         sync_param_path = PathJoinSubstitution(
             [
                 FindPackageShare("autoware_launch_config"),
@@ -52,16 +63,7 @@ class SmallUnknownPipeline:
         with open(sync_param_path, "r") as f:
             self.roi_pointcloud_fusion_sync_param = yaml.safe_load(f)["/**"]["ros__parameters"]
 
-        self.roi_pointcloud_fusion_param = self.irregular_object_detector_param[
-            "roi_pointcloud_fusion"
-        ]["parameters"]
-
-        self.camera_ids = LaunchConfiguration("fusion_camera_ids").perform(context)
-        # convert string to list
-        self.camera_ids = yaml.load(self.camera_ids, Loader=yaml.FullLoader)
-        self.roi_pointcloud_fusion_param["rois_number"] = len(self.camera_ids)
         rois_timestamp_offsets = []
-        approximate_camera_projection = []
         rois_timestamp_noise_window = []
         approximate_camera_projection = []
         point_project_to_unrectified_image = []
@@ -83,16 +85,7 @@ class SmallUnknownPipeline:
                     camera_id
                 ]
             )
-            self.roi_pointcloud_fusion_param[f"input/rois{index}"] = (
-                f"/perception/object_recognition/detection/rois{camera_id}"
-            )
-            self.roi_pointcloud_fusion_param[f"input/camera_info{index}"] = (
-                f"/sensing/camera/camera{camera_id}/camera_info"
-            )
-            self.roi_pointcloud_fusion_param[f"input/image{index}"] = (
-                f"/sensing/camera/camera{camera_id}/image_raw"
-            )
-
+        
         self.roi_pointcloud_fusion_sync_param["rois_timestamp_offsets"] = rois_timestamp_offsets
         self.roi_pointcloud_fusion_sync_param["approximate_camera_projection"] = (
             approximate_camera_projection
@@ -106,23 +99,6 @@ class SmallUnknownPipeline:
         self.roi_pointcloud_fusion_sync_param["point_project_to_unrectified_image"] = (
             point_project_to_unrectified_image
         )
-
-    def get_vehicle_info(self):
-        # TODO(TIER IV): Use Parameter Substitution after we drop Galactic support
-        # https://github.com/ros2/launch_ros/blob/master/launch_ros/launch_ros/substitutions/parameter.py
-        gp = self.context.launch_configurations.get("ros_params", {})
-        if not gp:
-            gp = dict(self.context.launch_configurations.get("global_params", {}))
-        p = {}
-        p["vehicle_length"] = gp["front_overhang"] + gp["wheel_base"] + gp["rear_overhang"]
-        p["vehicle_width"] = gp["wheel_tread"] + gp["left_overhang"] + gp["right_overhang"]
-        p["min_longitudinal_offset"] = -gp["rear_overhang"]
-        p["max_longitudinal_offset"] = gp["front_overhang"] + gp["wheel_base"]
-        p["min_lateral_offset"] = -(gp["wheel_tread"] / 2.0 + gp["right_overhang"])
-        p["max_lateral_offset"] = gp["wheel_tread"] / 2.0 + gp["left_overhang"]
-        p["min_height_offset"] = 0.0
-        p["max_height_offset"] = gp["vehicle_height"]
-        return p
 
     def get_agnocast_env(self):
         agnocast_env = IncludeLaunchDescription(
@@ -156,7 +132,14 @@ class SmallUnknownPipeline:
                         "input_frame": LaunchConfiguration("base_frame"),
                         "output_frame": LaunchConfiguration("base_frame"),
                     },
-                    self.irregular_object_detector_param["crop_box_filter"]["parameters"],
+                    ParameterFile(
+                        param_file=PathJoinSubstitution(
+                            [
+                                FindPackageShare("autoware_launch_config"),
+                                "config/perception/object_recognition/detection/irregular_object_detection/crop_box_filter.param.yaml",
+                            ],
+                        ),
+                    ),
                 ],
                 extra_arguments=[
                     {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
@@ -175,7 +158,13 @@ class SmallUnknownPipeline:
                     ("output", "obstacle_segmentation/pointcloud"),
                 ],
                 parameters=[
-                    self.irregular_object_detector_param["ground_segmentation"]["parameters"]
+                    ParameterFile(
+                        param_file=PathJoinSubstitution(
+                            [
+                                FindPackageShare("autoware_launch_config"),
+                                "config/perception/object_recognition/detection/irregular_object_detection/ground_segmentation.param.yaml",
+                            ],
+                        ),                    ),
                 ],
                 extra_arguments=[
                     {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
@@ -195,7 +184,23 @@ class SmallUnknownPipeline:
             ],
             parameters=[
                 self.roi_pointcloud_fusion_sync_param,
-                self.roi_pointcloud_fusion_param,
+                # ParameterFile(
+                #     param_file=PathJoinSubstitution(
+                #         [
+                #             FindPackageShare("autoware_launch_config"),
+                #             "config/perception/object_recognition/detection/image_projection_based_fusion/fusion_common.param.yaml",
+                #         ]
+                #     ),
+                # ),
+                ParameterFile(
+                    param_file=PathJoinSubstitution(
+                        [
+                            FindPackageShare("autoware_launch_config"),
+                            "config/perception/object_recognition/detection/irregular_object_detection/roi_pointcloud_fusion.param.yaml",
+                        ]
+                    ),
+                ),
+                self.additional_params,
             ],
             additional_env={"LD_PRELOAD": LaunchConfiguration("ld_preload_value")},
         )
