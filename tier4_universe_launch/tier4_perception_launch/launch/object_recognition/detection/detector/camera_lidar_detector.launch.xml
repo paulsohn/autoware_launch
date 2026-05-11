@@ -46,7 +46,6 @@
   <arg name="input/concatenation_info"/>
 
   <arg name="segmentation_pointcloud_fusion_camera_ids"/>
-  <arg name="image_topic_name"/>
 
   <arg name="node/pointcloud_container"/>
   <arg name="input/pointcloud"/>
@@ -151,7 +150,6 @@
       <arg name="input/concatenation_info" value="$(var input/concatenation_info)"/>
       <arg name="input/pointcloud" value="$(var segmentation_based_filtered/input/pointcloud)"/>
       <arg name="output/pointcloud" value="$(var segmentation_based_filtered/output/pointcloud)"/>
-      <arg name="image_topic_name" value="$(var image_topic_name)"/>
       <arg name="fusion_camera_ids" value="$(var segmentation_pointcloud_fusion_camera_ids)"/>
       <arg name="sync_param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/image_projection_based_fusion/fusion_common.param.yaml"/>
     </include>

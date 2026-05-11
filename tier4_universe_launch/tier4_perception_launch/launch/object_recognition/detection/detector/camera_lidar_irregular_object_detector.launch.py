@@ -51,6 +51,7 @@ class SmallUnknownPipeline:
         # Filter configurations used in fusion_camera_ids
         # TODO: It might be better to pass full configuration lists and let the node handle the filtering
         # (In which case the below code can be removed and the param file can directly be passed to the node)
+        # See autoware_image_object_locator case
         sync_param_path = PathJoinSubstitution(
             [
                 FindPackageShare("autoware_launch_config"),
@@ -223,9 +224,7 @@ def generate_launch_description():
     add_launch_arg("use_intra_process", "True")
     add_launch_arg("use_multithread", "True")
     add_launch_arg("fusion_camera_ids", "[3,5]")
-    add_launch_arg("image_topic_name", "image_raw")
     add_launch_arg("pointcloud_container_name", "pointcloud_container")
-    add_launch_arg("use_pointcloud_container", "True")
 
     return launch.LaunchDescription(
         [
@@ -240,6 +239,9 @@ def generate_launch_description():
                         ]
                     ),
                 ),
+                launch_arguments={
+                    "use_multithread": LaunchConfiguration("use_multithread"),
+                }.items(),
             ),
             OpaqueFunction(function=launch_setup),
         ],

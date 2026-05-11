@@ -3,7 +3,6 @@
   <arg name="input/concatenation_info"/>
   <arg name="input/pointcloud"/>
   <arg name="fusion_camera_ids" default="[0]" description="camera IDs used for fusion"/>
-  <arg name="image_topic_name" default="image_raw" description="topic name of camera image"/>
 
   <!-- small unknown object detector -->
   <group>
@@ -13,7 +12,6 @@
       <arg name="output_topic" value="clusters"/>
       <arg name="pointcloud_container_name" value="$(var node/pointcloud_container)"/>
       <arg name="fusion_camera_ids" value="$(var fusion_camera_ids)"/>
-      <arg name="image_topic_name" value="$(var image_topic_name)"/>
     </include>
   </group>
   <!-- Convex Hull conversion from DynamicObjectsWithFeatureArray to DynamicObjects -->
