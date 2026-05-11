@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-
 import launch
 from launch.actions import DeclareLaunchArgument
 from launch.actions import OpaqueFunction
@@ -346,9 +344,7 @@ class GroundSegmentationPipeline:
         return components
 
     @staticmethod
-    def create_time_series_outlier_filter_components(
-        input_topic, output_topic, ogm_outlier_filter_param
-    ):
+    def create_time_series_outlier_filter_components(input_topic, output_topic):
         components = []
         components.append(
             ComposableNode(
@@ -360,7 +356,16 @@ class GroundSegmentationPipeline:
                     ("~/input/pointcloud", input_topic),
                     ("~/output/pointcloud", output_topic),
                 ],
-                parameters=[ogm_outlier_filter_param],
+                parameters=[
+                    ParameterFile(
+                        param_file=PathJoinSubstitution(
+                            [
+                                FindPackageShare("autoware_occupancy_grid_map_outlier_filter"),
+                                "/config/occupancy_grid_map_outlier_filter.param.yaml",
+                            ]
+                        )
+                    )
+                ],
                 extra_arguments=[
                     {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
                 ],
@@ -538,12 +543,6 @@ def launch_setup(context, *args, **kwargs):
 
     components = []
     if pipeline.use_cuda_ground_segmentation:
-        ground_segmentation_node_param = ParameterFile(
-            param_file=LaunchConfiguration("cuda_ground_segmentation_node_param_path").perform(
-                context
-            ),
-            allow_substs=True,
-        )
         components.append(
             ComposableNode(
                 package="autoware_ground_segmentation_cuda",
@@ -566,7 +565,17 @@ def launch_setup(context, *args, **kwargs):
                         "/perception/obstacle_segmentation/ground_pointcloud/cuda",
                     ),
                 ],
-                parameters=[ground_segmentation_node_param],
+                parameters=[
+                    ParameterFile(
+                        param_file=PathJoinSubstitution(
+                            [
+                                FindPackageShare("autoware_ground_segmentation_cuda"),
+                                "/config/cuda_scan_ground_segmentation_filter.param.yaml",
+                            ]
+                        ),
+                        allow_substs=True,
+                    )
+                ],
                 extra_arguments=[],
             )
         )
@@ -613,9 +622,6 @@ def launch_setup(context, *args, **kwargs):
                     else pipeline.single_frame_obstacle_seg_output
                 ),
                 output_topic=pipeline.output_topic,
-                ogm_outlier_filter_param=ParameterFile(
-                    LaunchConfiguration("ogm_outlier_filter_param_path").perform(context)
-                ),
             )
         )
     pointcloud_container_loader = LoadComposableNodes(
@@ -637,20 +643,6 @@ def generate_launch_description():
     add_launch_arg("pointcloud_container_name", "pointcloud_container")
     add_launch_arg("input/pointcloud", "/sensing/lidar/concatenated/pointcloud")
     add_launch_arg("use_cuda_ground_segmentation", "False")
-    add_launch_arg(
-        "ogm_outlier_filter_param_path",
-        [
-            FindPackageShare("autoware_occupancy_grid_map_outlier_filter"),
-            "/config/occupancy_grid_map_outlier_filter.param.yaml",
-        ],
-    )
-    add_launch_arg(
-        "cuda_ground_segmentation_node_param_path",
-        [
-            FindPackageShare("autoware_ground_segmentation_cuda"),
-            "/config/cuda_scan_ground_segmentation_filter.param.yaml",
-        ],
-    )
 
     set_container_executable = SetLaunchConfiguration(
         "container_executable",

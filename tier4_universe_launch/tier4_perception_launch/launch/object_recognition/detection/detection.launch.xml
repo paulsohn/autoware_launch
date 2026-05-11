@@ -20,13 +20,6 @@
   </arg>
   <arg name="lidar_detection_model_name" description="options: `bevfusion_lidar`, `centerpoint`, `centerpoint_tiny`, `centerpoint_sigma`, `pointpainting`, `transfusion` (non-exhaustive)"/>
   <arg name="use_short_range_detection" description="use short range detection for redundant VRU detection"/>
-  <arg name="lidar_short_range_detection_model_type" description="options: `centerpoint_short_range`">
-    <choice value="centerpoint_short_range"/>
-  </arg>
-  <arg name="lidar_short_range_detection_model_name" description="options: `centerpoint_short_range`">
-    <choice value="centerpoint_short_range"/>
-    <choice value=""/>
-  </arg>
   <arg name="use_object_filter" description="use object filter"/>
   <arg name="objects_filter_method" description="options: `lanelet_filter` or `position_filter`"/>
   <arg name="use_pointcloud_map" description="use pointcloud map filter"/>
@@ -40,11 +33,7 @@
   <arg name="use_irregular_object_detector"/>
   <arg name="irregular_object_detector_fusion_camera_ids" default="[0]"/>
   <arg name="ml_camera_lidar_merger_priority_mode"/>
-  <arg name="camera_2d_detector/model_path"/>
-  <arg name="camera_2d_detector/label_path"/>
-  <arg name="camera_2d_detector/color_map_path"/>
-  <arg name="camera_2d_detector/roi_remap_path"/>
-  <arg name="camera_2d_detector/roi_to_semseg_remap_path"/>
+
   <arg name="use_camera_vru_detector"/>
   <arg name="camera_vru_detector_rois_ids" default="[0]"/>
 
@@ -90,7 +79,7 @@
   <!-- internal interfaces -->
   <let name="pointcloud_filter/output/pointcloud" value="$(var ros_namespace)/pointcloud_map_filtered/pointcloud"/>
   <let name="lidar_ml_detector/output/objects" value="$(var ros_namespace)/$(var lidar_detection_model_type)/objects"/>
-  <let name="lidar_ml_detector/output/short_range_objects" value="$(var ros_namespace)/$(var lidar_short_range_detection_model_type)/objects"/>
+  <let name="lidar_ml_detector/output/short_range_objects" value="$(var ros_namespace)/centerpoint_short_range/objects"/>
   <let name="lidar_rule_detector/output/cluster_objects" value="$(var ros_namespace)/clustering/objects_with_feature"/>
   <let name="lidar_rule_detector/output/objects" value="$(var ros_namespace)/clustering/objects"/>
   <let name="camera_lidar_rule_detector/output/objects" value="$(var ros_namespace)/clustering/camera_lidar_fusion/objects"/>
@@ -222,11 +211,6 @@
       <arg name="use_image_segmentation_based_filter" value="$(var use_image_segmentation_based_filter)"/>
       <arg name="segmentation_pointcloud_fusion_camera_ids" value="$(var segmentation_pointcloud_fusion_camera_ids)"/>
       <arg name="image_topic_name" value="$(var image_topic_name)"/>
-      <arg name="camera_2d_detector/model_path" value="$(var camera_2d_detector/model_path)"/>
-      <arg name="camera_2d_detector/label_path" value="$(var camera_2d_detector/label_path)"/>
-      <arg name="camera_2d_detector/color_map_path" value="$(var camera_2d_detector/color_map_path)"/>
-      <arg name="camera_2d_detector/roi_remap_path" value="$(var camera_2d_detector/roi_remap_path)"/>
-      <arg name="camera_2d_detector/roi_to_semseg_remap_path" value="$(var camera_2d_detector/roi_to_semseg_remap_path)"/>
     </include>
   </group>
 
@@ -249,8 +233,6 @@
       <arg name="node/pointcloud_container" value="$(var node/pointcloud_container)"/>
       <arg name="lidar_detection_model_type" value="$(var lidar_detection_model_type)"/>
       <arg name="lidar_detection_model_name" value="$(var lidar_detection_model_name)"/>
-      <arg name="lidar_short_range_detection_model_type" value="$(var lidar_short_range_detection_model_type)"/>
-      <arg name="lidar_short_range_detection_model_name" value="$(var lidar_short_range_detection_model_name)"/>
       <arg name="use_short_range_detection" value="$(var use_short_range_detection)"/>
       <arg name="output/short_range_objects" value="$(var lidar_ml_detector/output/short_range_objects)"/>
     </include>
@@ -327,7 +309,6 @@
       <arg name="input/camera7/rois" value="$(var input/camera7/rois)"/>
       <arg name="input/camera7/info" value="$(var input/camera7/info)"/>
       <arg name="output/objects" value="$(var camera_vru_detector/output/objects)"/>
-      <arg name="bbox_object_locator_param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/camera_vru_detection/near_range_camera_vru_detector.param.yaml"/>
     </include>
   </group>
 

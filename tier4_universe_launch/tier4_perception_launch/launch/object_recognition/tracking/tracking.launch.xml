@@ -24,8 +24,8 @@
   <arg name="input/lidar_dnn/channel" default="lidar_$(var lidar_detection_model_type)"/>
   <arg name="input/lidar_dnn/objects" default="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects"/>
   <arg name="input/lidar_dnn_validated/objects" default="/perception/object_recognition/detection/$(var lidar_detection_model_type)/validation/objects"/>
-  <arg name="input/lidar_dnn_short_range/channel" default="lidar_$(var lidar_short_range_detection_model_type)"/>
-  <arg name="input/lidar_dnn_short_range/objects" default="/perception/object_recognition/detection/$(var lidar_short_range_detection_model_type)/objects"/>
+  <arg name="input/lidar_dnn_short_range/channel" default="lidar_centerpoint_short_range"/>
+  <arg name="input/lidar_dnn_short_range/objects" default="/perception/object_recognition/detection/centerpoint_short_range/objects"/>
   <arg name="input/camera_lidar_rule_detector/channel" default="camera_lidar_fusion"/>
   <arg name="input/camera_lidar_rule_detector/objects" default="/perception/object_recognition/detection/clustering/camera_lidar_fusion/objects"/>
   <arg name="input/irregular_object_detector/channel" default="camera_lidar_fusion_irregular"/>
@@ -90,7 +90,10 @@
         <arg name="input/main_object" value="$(var tracker_merger/input/main_objects)"/>
         <arg name="input/sub_object" value="$(var tracker_merger/input/sub_objects)"/>
         <arg name="output" value="$(var tracker_merger/output/objects)"/>
-        <arg name="data_association_matrix_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/tracking/tracking_object_merger/data_association_matrix.param.yaml"/>
+        <arg
+          name="data_association_matrix_path"
+          value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/tracking/tracking_object_merger/data_association_matrix.param.yaml"
+        />
         <arg name="node_param_file_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/tracking/tracking_object_merger/decorative_tracker_merger.param.yaml"/>
       </include>
     </group>

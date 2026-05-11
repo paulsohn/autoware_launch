@@ -69,7 +69,7 @@
       <arg name="output/rois6/objects" value="$(var roi_detector/output/objects6)"/>
       <arg name="output/rois7/objects" value="$(var roi_detector/output/objects7)"/>
 
-      <arg name="param_path" value="$(var bbox_object_locator_param_path)"/>
+      <arg name="param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/camera_vru_detection/near_range_camera_vru_detector.param.yaml"/>
     </include>
   </group>
 

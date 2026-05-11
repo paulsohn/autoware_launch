@@ -22,6 +22,7 @@ from launch.actions import SetLaunchConfiguration
 from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
 from launch.substitutions import LaunchConfiguration
+from launch.substitutions import PathJoinSubstitution
 from launch.substitutions import PythonExpression
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.actions import LoadComposableNodes
@@ -33,14 +34,6 @@ import yaml
 
 
 def launch_setup(context, *args, **kwargs):
-    high_accuracy_detection_type = LaunchConfiguration("high_accuracy_detection_type").perform(
-        context
-    )
-    assert high_accuracy_detection_type in [
-        "whole_image_detection",
-        "fine_detection",
-    ], "high_accuracy_detection_type must be either 'whole_image_detection' or 'fine_detection'."
-
     # Load camera namespaces
     camera_namespaces = LaunchConfiguration("camera_namespaces").perform(context)
 
@@ -76,9 +69,28 @@ def create_traffic_light_node_container(namespace, context, *args, **kwargs):
     }
 
     classification_lamp_recognizer_ml_param = ParameterFile(
-        param_file=LaunchConfiguration("classification/lamp_recognizer_ml_param_path"),
+        param_file=PathJoinSubstitution(
+            [
+                LaunchConfiguration("data_path"),
+                "traffic_light_classifier/lamp_recognizer_ml.param.yaml",
+            ]
+        ),
         allow_substs=True,
     )
+
+    type_to_model = {
+        # "0": ??
+        "1": "traffic_light_classifier_mobilenetv2_batch_6.onnx",
+        "2": "traffic_light_lamp_recognizer_comlops.onnx",
+    }
+
+    traffic_light_car_classifier_type = "1"
+    traffic_light_car_classifier_model = type_to_model[traffic_light_car_classifier_type]
+
+    traffic_light_pedestrian_classifier_type = "1"
+    traffic_light_pedestrian_classifier_model = type_to_model[
+        traffic_light_pedestrian_classifier_type
+    ]
 
     container = ComposableNodeContainer(
         name="traffic_light_node_container",
@@ -102,11 +114,20 @@ def create_traffic_light_node_container(namespace, context, *args, **kwargs):
                     classification_lamp_recognizer_ml_param,
                     {
                         "build_only": False,
-                        "label_path": LaunchConfiguration("classification/car/label_path"),
-                        "model_path": LaunchConfiguration("classification/car/model_path"),
-                        "classifier_type": LaunchConfiguration(
-                            "classification/car/classifier_type"
+                        "label_path": PathJoinSubstitution(
+                            [
+                                LaunchConfiguration("data_path"),
+                                "traffic_light_classifier/lamp_labels.txt",
+                            ]
                         ),
+                        "model_path": PathJoinSubstitution(
+                            [
+                                LaunchConfiguration("data_path"),
+                                "traffic_light_classifier",
+                                traffic_light_car_classifier_model,
+                            ]
+                        ),
+                        "classifier_type": traffic_light_car_classifier_type,
                     },
                 ],
                 remappings=[
@@ -134,11 +155,20 @@ def create_traffic_light_node_container(namespace, context, *args, **kwargs):
                     classification_lamp_recognizer_ml_param,
                     {
                         "build_only": False,
-                        "label_path": LaunchConfiguration("classification/pedestrian/label_path"),
-                        "model_path": LaunchConfiguration("classification/pedestrian/model_path"),
-                        "classifier_type": LaunchConfiguration(
-                            "classification/pedestrian/classifier_type"
+                        "label_path": PathJoinSubstitution(
+                            [
+                                LaunchConfiguration("data_path"),
+                                "traffic_light_classifier/lamp_labels_ped.txt",
+                            ]
                         ),
+                        "model_path": PathJoinSubstitution(
+                            [
+                                LaunchConfiguration("data_path"),
+                                "traffic_light_classifier",
+                                traffic_light_pedestrian_classifier_model,
+                            ]
+                        ),
+                        "classifier_type": traffic_light_pedestrian_classifier_type,
                     },
                 ],
                 remappings=[
@@ -224,14 +254,24 @@ def create_traffic_light_node_container(namespace, context, *args, **kwargs):
                     ParameterFile(
                         param_file=[
                             FindPackageShare("autoware_launch_config"),
-                            "/config/perception/traffic_light_recognition/traffic_light_fine_detector/traffic_light_fine_detector.param.yaml"
+                            "/config/perception/traffic_light_recognition/traffic_light_fine_detector/traffic_light_fine_detector.param.yaml",
                         ],
                         allow_substs=True,
                     ),
                     {
                         "build_only": False,
-                        "label_path": LaunchConfiguration("fine_detection/label_path"),
-                        "model_path": LaunchConfiguration("fine_detection/model_path"),
+                        "label_path": PathJoinSubstitution(
+                            [
+                                LaunchConfiguration("data_path"),
+                                "traffic_light_fine_detector/tlr_labels.txt",
+                            ]
+                        ),
+                        "model_path": PathJoinSubstitution(
+                            [
+                                LaunchConfiguration("data_path"),
+                                "traffic_light_fine_detector/tlr_car_ped_yolox_s_batch_6.onnx",
+                            ]
+                        ),
                     },
                 ],
                 remappings=[
@@ -269,16 +309,29 @@ def create_traffic_light_node_container(namespace, context, *args, **kwargs):
                     ParameterFile(
                         param_file=[
                             FindPackageShare("autoware_launch_config"),
-                            "/config/perception/traffic_light_recognition/tensorrt_yolox/yolox_traffic_light_detector.param.yaml"
+                            "/config/perception/traffic_light_recognition/tensorrt_yolox/yolox_traffic_light_detector.param.yaml",
                         ],
                         allow_substs=True,
                     ),
                     {
                         "build_only": False,
-                        "label_path": LaunchConfiguration("whole_image_detection/label_path"),
-                        "model_path": LaunchConfiguration("whole_image_detection/model_path"),
-                        "roi_remap_path": LaunchConfiguration(
-                            "whole_image_detection/yolox_roi_label_remap_path"
+                        "label_path": PathJoinSubstitution(
+                            [
+                                LaunchConfiguration("data_path"),
+                                "tensorrt_yolox/car_ped_tl_detector_labels.txt",
+                            ]
+                        ),
+                        "model_path": PathJoinSubstitution(
+                            [
+                                LaunchConfiguration("data_path"),
+                                "tensorrt_yolox/yolox_s_car_ped_tl_detector_960_960_batch_1.onnx",
+                            ]
+                        ),
+                        "roi_remap_path": PathJoinSubstitution(
+                            [
+                                FindPackageShare("autoware_launch_config"),
+                                "config/perception/traffic_light_recognition/tensorrt_yolox/traffic_light_roi_label_remap.csv",
+                            ]
                         ),
                         "roi_to_semantic_segmentation_remap_path": "",  # not used
                         "semantic_segmentation_color_map_path": "",  # not used
@@ -358,35 +411,17 @@ def generate_launch_description():
             DeclareLaunchArgument(name, default_value=default_value, description=description)
         )
 
+    add_launch_arg("data_path")
+
     add_launch_arg("enable_image_decompressor")
     add_launch_arg("camera_namespaces")
     add_launch_arg("use_high_accuracy_detection")
-    add_launch_arg("high_accuracy_detection_type")
 
-    # whole image detector by yolox
-    add_launch_arg("whole_image_detection/model_path")
-    add_launch_arg("whole_image_detection/label_path")
-    add_launch_arg("whole_image_detection/yolox_roi_label_remap_path")
-
-    # traffic_light_fine_detector
-    add_launch_arg("fine_detection/model_path")
-    add_launch_arg("fine_detection/label_path")
-
-    # traffic_light_classifier
-    add_launch_arg("classification/car/model_path")
-    add_launch_arg("classification/car/label_path")
-    add_launch_arg("classification/pedestrian/model_path")
-    add_launch_arg("classification/pedestrian/label_path")
-    add_launch_arg("classification/lamp_recognizer_ml_param_path")
-    add_launch_arg(
-        "classification/car/classifier_type",
-        default_value="1",
-        description="0=HSVFilter, 1=CNN, 2=LAMPClassifier",
-    )
-    add_launch_arg(
-        "classification/pedestrian/classifier_type",
-        default_value="1",
-        description="0=HSVFilter, 1=CNN, 2=LampRecognizer",
+    launch_arguments.append(
+        DeclareLaunchArgument(
+            "high_accuracy_detection_type",
+            choices=["whole_image_detection", "fine_detection"],
+        )
     )
 
     add_launch_arg("use_intra_process", "False")

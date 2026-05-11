@@ -48,32 +48,12 @@
   <arg name="use_camera_vru_detector" default="false" description="enable pipeline for camera VRU object detection"/>
   <arg name="camera_vru_detector_rois_ids" default="[0]" description="list of ROIs ids used for detecting VRU."/>
 
-  <arg name="occupancy_grid_map_method" default="pointcloud_based" description="options: pointcloud_based, laserscan_based, multi_lidar_pointcloud_based"/>
-  <arg name="occupancy_grid_map_updater" default="binary_bayes_filter" description="options: binary_bayes_filter"/>
   <arg name="detected_objects_filter_method" default="lanelet_filter" description="options: lanelet_filter, position_filter"/>
   <arg name="detected_objects_validation_method" default="obstacle_pointcloud" description="options: obstacle_pointcloud, occupancy_grid (must be used with laserscan_based_occupancy_grid_map)"/>
   <arg name="data_path" default="$(env HOME)/autoware_data/ml_models" description="packages data and artifacts directory path"/>
   <arg name="lidar_detection_model" default="centerpoint" description="If the model name is not declared, the default model in perception.launch.xml will be used"/>
   <arg name="ml_camera_lidar_merger_priority_mode" default="0" description="priority mode for ml and camera_lidar merger, options: `0: Object0`, `1: Object1`, `2: ConfidenceBased`, `3: ClassBased`"/>
   <arg name="input_pointcloud_for_traffic_light_occlusion_predictor" default="/sensing/lidar/top/pointcloud_raw_ex" description="input pointcloud topic for traffic_light_occlusion_predictor"/>
-
-  <arg
-    name="camera_2d_detector/model_path"
-    default="$(var data_path)/tensorrt_yolox/yolox-sPlus-opt-pseudoV2-T4-960x960-T4-seg16cls.onnx"
-    description="options `yolox-sPlus-T4-960x960-pseudo-finetune.onnx` if only detection is needed, `yolox-sPlus-opt-pseudoV2-T4-960x960-T4-seg16cls.onnx` if sematic segmentation is also needed"
-  />
-  <arg name="camera_2d_detector/label_path" default="$(var data_path)/tensorrt_yolox/label.txt" description="label path"/>
-  <arg name="camera_2d_detector/color_map_path" default="$(var data_path)/tensorrt_yolox/semseg_color_map.csv" description="color map path"/>
-  <arg
-    name="camera_2d_detector/roi_remap_path"
-    default="$(find-pkg-share autoware_launch_config)/config/perception/traffic_light_recognition/tensorrt_yolox/roi_label_remap.csv"
-    description="path to a definition file for remapping ROI classes"
-  />
-  <arg
-    name="camera_2d_detector/roi_to_semseg_remap_path"
-    default="$(find-pkg-share autoware_launch_config)/config/perception/traffic_light_recognition/tensorrt_yolox/roi_to_semseg_label_remap.csv"
-    description="path to a definition file for remapping ROI classes to semantic segmentation output classes"
-  />
 
   <arg name="traffic_light_recognition/camera_namespaces" default="[camera6, camera7]" description="choose camera which use for traffic light recognition"/>
   <arg name="traffic_light_recognition/use_high_accuracy_detection" default="true" description="select whether to use high accuracy detector for traffic light recognition"/>
@@ -82,35 +62,6 @@
     default="fine_detection"
     description="select high accuracy detector type for traffic light recognition: fine_detection or whole_image_detection"
   />
-
-  <arg name="traffic_light_recognition/classification/car/classifier_type" default="1" description="0=HSVFilter, 1=CNN, 2=LAMPClassifier"/>
-  <arg name="traffic_light_recognition/classification/pedestrian/classifier_type" default="1" description="0=HSVFilter, 1=CNN, 2=LampRecognizer"/>
-  <arg name="traffic_light_recognition/classification/car/label_path" default="$(var data_path)/traffic_light_classifier/lamp_labels.txt"/>
-  <arg name="traffic_light_recognition/classification/pedestrian/label_path" default="$(var data_path)/traffic_light_classifier/lamp_labels_ped.txt"/>
-  <arg name="traffic_light_recognition/classification/lamp_recognizer_ml_param_path" default="$(var data_path)/traffic_light_classifier/lamp_recognizer_ml.param.yaml"/>
-  <arg
-    name="traffic_light_car_classifier_model"
-    default="traffic_light_classifier_mobilenetv2_batch_6.onnx"
-    if="$(eval &quot;'$(var traffic_light_recognition/classification/car/classifier_type)' == '1'&quot;)"
-  />
-  <arg
-    name="traffic_light_car_classifier_model"
-    default="traffic_light_lamp_recognizer_comlops.onnx"
-    if="$(eval &quot;'$(var traffic_light_recognition/classification/car/classifier_type)' == '2'&quot;)"
-  />
-  <arg
-    name="traffic_light_ped_classifier_model"
-    default="ped_traffic_light_classifier_mobilenetv2_batch_6.onnx"
-    if="$(eval &quot;'$(var traffic_light_recognition/classification/pedestrian/classifier_type)' == '1'&quot;)"
-  />
-  <arg
-    name="traffic_light_ped_classifier_model"
-    default="traffic_light_lamp_recognizer_comlops.onnx"
-    if="$(eval &quot;'$(var traffic_light_recognition/classification/pedestrian/classifier_type)' == '2'&quot;)"
-  />
-  <arg name="traffic_light_recognition/classification/car/model_path" default="$(var data_path)/traffic_light_classifier/$(var traffic_light_car_classifier_model)"/>
-  <arg name="traffic_light_recognition/classification/pedestrian/model_path" default="$(var data_path)/traffic_light_classifier/$(var traffic_light_ped_classifier_model)"/>
-  <let name="occupancy_grid_map_method_full" value="$(var occupancy_grid_map_method)_occupancy_grid_map"/>
 
   <include file="$(find-pkg-share tier4_perception_launch)/launch/perception.launch.xml">
     <arg name="data_path" value="$(var data_path)"/>
@@ -122,8 +73,6 @@
     <arg name="vehicle_param_file" value="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml"/>
 
     <arg name="pointcloud_container_name" value="$(var pointcloud_container_name)"/>
-    <arg name="occupancy_grid_map_method" value="$(var occupancy_grid_map_method_full)"/>
-    <arg name="occupancy_grid_map_updater" value="$(var occupancy_grid_map_updater)"/>
 
     <arg name="use_empty_dynamic_object_publisher" value="$(var use_empty_dynamic_object_publisher)"/>
     <arg name="use_low_height_cropbox" value="$(var use_low_height_cropbox)"/>
@@ -145,39 +94,12 @@
     <arg name="use_camera_vru_detector" value="$(var use_camera_vru_detector)"/>
     <arg name="camera_vru_detector_rois_ids" value="$(var camera_vru_detector_rois_ids)"/>
 
-    <arg name="camera_2d_detector/model_path" value="$(var camera_2d_detector/model_path)"/>
-    <arg name="camera_2d_detector/label_path" value="$(var camera_2d_detector/label_path)"/>
-    <arg name="camera_2d_detector/color_map_path" value="$(var camera_2d_detector/color_map_path)"/>
-    <arg name="camera_2d_detector/roi_remap_path" value="$(var camera_2d_detector/roi_remap_path)"/>
-    <arg name="camera_2d_detector/roi_to_semseg_remap_path" value="$(var camera_2d_detector/roi_to_semseg_remap_path)"/>
-
     <!-- traffic light recognition options to switch launch function/module -->
     <arg name="use_traffic_light_recognition" value="$(var use_traffic_light_recognition)"/>
-    <arg name="traffic_light_recognition/fusion_only" value="false"/>
     <arg name="traffic_light_recognition/camera_namespaces" value="$(var traffic_light_recognition/camera_namespaces)"/>
     <arg name="traffic_light_recognition/use_high_accuracy_detection" value="$(var traffic_light_recognition/use_high_accuracy_detection)"/>
     <arg name="traffic_light_recognition/high_accuracy_detection_type" value="$(var traffic_light_recognition/high_accuracy_detection_type)"/>
 
-    <!-- occupancy grid map parameters -->
-    <arg name="occupancy_grid_map_param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/occupancy_grid_map/$(var occupancy_grid_map_method_full).param.yaml"/>
-    <arg name="occupancy_grid_map_updater_param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/occupancy_grid_map/$(var occupancy_grid_map_updater)_updater.param.yaml"/>
-
-    <!-- traffic light recognition parameters -->
-    <arg name="traffic_light_recognition/whole_image_detection/model_path" value="$(var data_path)/tensorrt_yolox/yolox_s_car_ped_tl_detector_960_960_batch_1.onnx"/>
-    <arg name="traffic_light_recognition/whole_image_detection/label_path" value="$(var data_path)/tensorrt_yolox/car_ped_tl_detector_labels.txt"/>
-    <arg
-      name="traffic_light_recognition/whole_image_detection/yolox_roi_label_remap_path"
-      value="$(find-pkg-share autoware_launch_config)/config/perception/traffic_light_recognition/tensorrt_yolox/traffic_light_roi_label_remap.csv"
-    />
-    <arg name="traffic_light_recognition/classification/pedestrian/classifier_type" value="$(var traffic_light_recognition/classification/pedestrian/classifier_type)"/>
-    <arg name="traffic_light_recognition/classification/car/classifier_type" value="$(var traffic_light_recognition/classification/car/classifier_type)"/>
-    <arg name="traffic_light_recognition/fine_detection/model_path" value="$(var data_path)/traffic_light_fine_detector/tlr_car_ped_yolox_s_batch_6.onnx"/>
-    <arg name="traffic_light_recognition/fine_detection/label_path" value="$(var data_path)/traffic_light_fine_detector/tlr_labels.txt"/>
-    <arg name="traffic_light_recognition/classification/car/model_path" value="$(var traffic_light_recognition/classification/car/model_path)"/>
-    <arg name="traffic_light_recognition/classification/car/label_path" value="$(var traffic_light_recognition/classification/car/label_path)"/>
-    <arg name="traffic_light_recognition/classification/pedestrian/model_path" value="$(var traffic_light_recognition/classification/pedestrian/model_path)"/>
-    <arg name="traffic_light_recognition/classification/pedestrian/label_path" value="$(var traffic_light_recognition/classification/pedestrian/label_path)"/>
-    <arg name="traffic_light_recognition/classification/lamp_recognizer_ml_param_path" value="$(var traffic_light_recognition/classification/lamp_recognizer_ml_param_path)"/>
     <arg name="input_pointcloud_for_traffic_light_occlusion_predictor" value="$(var input_pointcloud_for_traffic_light_occlusion_predictor)"/>
   </include>
 </launch>

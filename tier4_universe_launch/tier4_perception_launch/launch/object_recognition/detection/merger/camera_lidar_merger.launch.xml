@@ -107,16 +107,15 @@
 
   <!-- merger: irregular_objects + ml_lidar -->
   <group if="$(var use_irregular_object_detector)">
-    <let name="simple_object_merger_param_path" value="$(find-pkg-share autoware_simple_object_merger)/config/simple_object_merger.param.yaml"/>
     <node pkg="autoware_simple_object_merger" exec="simple_object_merger_node" name="simple_object_merger" output="screen">
       <remap from="~/output/objects" to="$(var merger0/output/objects)"/>
-      <param from="$(var simple_object_merger_param_path)" allow_substs="true"/>
+      <param from="$(find-pkg-share autoware_simple_object_merger)/config/simple_object_merger.param.yaml" allow_substs="true"/>
       <param name="update_rate_hz" value="10.0"/>
       <param name="input_topics" value="[$(var merger0/input/objects0),$(var merger0/input/objects1)]"/>
     </node>
   </group>
 
-  <let name="data_association_matrix_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/object_merger/data_association_matrix.param.yaml" />
+  <let name="data_association_matrix_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/object_merger/data_association_matrix.param.yaml"/>
   <let name="distance_threshold_list_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/object_merger/overlapped_judge.param.yaml"/>
 
   <!-- 1st merger: camera_lidar_fusion + lidar cluster-->
@@ -129,7 +128,10 @@
       <arg name="priority_mode" value="$(var alpha_merger_priority_mode)"/>
       <arg name="data_association_matrix_path" value="$(var data_association_matrix_path)"/>
       <arg name="distance_threshold_list_path" value="$(var distance_threshold_list_path)"/>
-      <arg name="object_association_merger_param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/object_merger/ml_camera_lidar_object_association_merger.param.yaml"/>
+      <arg
+        name="object_association_merger_param_path"
+        value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/object_merger/ml_camera_lidar_object_association_merger.param.yaml"
+      />
     </include>
   </group>
 
