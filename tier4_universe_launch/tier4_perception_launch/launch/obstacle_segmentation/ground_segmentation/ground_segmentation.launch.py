@@ -13,10 +13,8 @@
 # limitations under the License.
 import launch
 from launch.actions import DeclareLaunchArgument
-from launch.actions import IncludeLaunchDescription
 from launch.actions import OpaqueFunction
 from launch.actions import SetLaunchConfiguration
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import LoadComposableNodes
@@ -668,7 +666,6 @@ def generate_launch_description():
         launch_arguments.append(DeclareLaunchArgument(name, default_value=default_value))
 
     add_launch_arg("base_frame", "base_link")
-    add_launch_arg("use_multithread", "False")
     add_launch_arg("use_intra_process", "True")
     add_launch_arg("pointcloud_container_name", "pointcloud_container")
     add_launch_arg("input/pointcloud", "/sensing/lidar/concatenated/pointcloud")
@@ -677,17 +674,6 @@ def generate_launch_description():
     return launch.LaunchDescription(
         [
             *launch_arguments,
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(
-                    PathJoinSubstitution(
-                        [
-                            FindPackageShare("autoware_agnocast_wrapper"),
-                            "launch",
-                            "agnocast_env.launch.py",
-                        ]
-                    ),
-                ),
-            ),
             SetLaunchConfiguration(
                 "common_crop_box_filter_margin_max_z",
                 "0.0",

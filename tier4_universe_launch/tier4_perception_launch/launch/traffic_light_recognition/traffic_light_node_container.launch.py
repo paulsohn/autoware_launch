@@ -439,6 +439,9 @@ def generate_launch_description():
                         ]
                     ),
                 ),
+                launch_arguments={
+                    "use_multithread": LaunchConfiguration("use_multithread"),
+                }.items(),
             ),
             OpaqueFunction(function=launch_setup),
         ]

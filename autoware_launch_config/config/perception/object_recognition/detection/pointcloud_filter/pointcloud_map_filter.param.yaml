@@ -2,7 +2,7 @@
   ros__parameters:
 
     # voxel size for downsample filter
-    down_sample_voxel_size: 0.1
+    down_sample_voxel_size: $(var down_sample_voxel_size)
 
     # distance threshold for compare compare
     distance_threshold: 0.5

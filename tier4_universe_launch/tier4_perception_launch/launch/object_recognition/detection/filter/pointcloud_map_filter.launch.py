@@ -13,122 +13,15 @@
 # limitations under the License.
 import launch
 from launch.actions import DeclareLaunchArgument
-from launch.actions import IncludeLaunchDescription
-from launch.actions import OpaqueFunction
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import SetLaunchConfiguration
+from launch.conditions import IfCondition
+from launch.conditions import UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
+from launch_ros.parameter_descriptions import ParameterFile
 from launch_ros.substitutions import FindPackageShare
-import yaml
-
-
-class PointcloudMapFilterPipeline:
-    def __init__(self, context):
-        pointcloud_map_filter_param_path = PathJoinSubstitution(
-            [
-                FindPackageShare("autoware_launch_config"),
-                "config/perception/object_recognition/detection/pointcloud_filter/pointcloud_map_filter.param.yaml",
-            ]
-        ).perform(context)
-        with open(pointcloud_map_filter_param_path, "r") as f:
-            self.pointcloud_map_filter_param = yaml.safe_load(f)["/**"]["ros__parameters"]
-        self.voxel_size = self.pointcloud_map_filter_param["down_sample_voxel_size"]
-        self.use_pointcloud_map = LaunchConfiguration("use_pointcloud_map").perform(context)
-
-    def create_pipeline(self):
-        if self.use_pointcloud_map == "true":
-            return self.create_compare_map_pipeline()
-        else:
-            return self.create_no_compare_map_pipeline()
-
-    def create_no_compare_map_pipeline(self):
-        components = []
-        components.append(
-            ComposableNode(
-                package="autoware_pointcloud_preprocessor",
-                plugin="autoware::pointcloud_preprocessor::ApproximateDownsampleFilterComponent",
-                name="voxel_grid_downsample_filter",
-                remappings=[
-                    ("input", LaunchConfiguration("input_topic")),
-                    ("output", LaunchConfiguration("output_topic")),
-                ],
-                parameters=[
-                    {
-                        "voxel_size_x": self.voxel_size,
-                        "voxel_size_y": self.voxel_size,
-                        "voxel_size_z": self.voxel_size,
-                    }
-                ],
-                extra_arguments=[
-                    {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
-                ],
-            ),
-        )
-        return components
-
-    def create_compare_map_pipeline(self):
-        components = []
-        down_sample_topic = (
-            "/perception/obstacle_segmentation/pointcloud_map_filtered/downsampled/pointcloud"
-        )
-        components.append(
-            ComposableNode(
-                package="autoware_pointcloud_preprocessor",
-                plugin="autoware::pointcloud_preprocessor::VoxelGridDownsampleFilterComponent",
-                name="voxel_grid_downsample_filter",
-                remappings=[
-                    ("input", LaunchConfiguration("input_topic")),
-                    ("output", down_sample_topic),
-                ],
-                parameters=[
-                    {
-                        "voxel_size_x": self.voxel_size,
-                        "voxel_size_y": self.voxel_size,
-                        "voxel_size_z": self.voxel_size,
-                    }
-                ],
-                extra_arguments=[
-                    {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
-                ],
-            ),
-        )
-        components.append(
-            ComposableNode(
-                package="autoware_compare_map_segmentation",
-                plugin="autoware::compare_map_segmentation::VoxelBasedCompareMapFilterComponent",
-                name="voxel_based_compare_map_filter",
-                remappings=[
-                    ("input", down_sample_topic),
-                    ("map", "/map/pointcloud_map"),
-                    ("output", LaunchConfiguration("output_topic")),
-                    ("map_loader_service", "/map/get_differential_pointcloud_map"),
-                    ("kinematic_state", "/localization/kinematic_state"),
-                ],
-                parameters=[
-                    self.pointcloud_map_filter_param,
-                    {
-                        "input_frame": "map",
-                    },
-                ],
-                extra_arguments=[
-                    {"use_intra_process_comms": False},
-                ],
-            )
-        )
-        return components
-
-
-def launch_setup(context, *args, **kwargs):
-    pipeline = PointcloudMapFilterPipeline(context)
-    components = []
-    components.extend(pipeline.create_pipeline())
-    pointcloud_container_loader = LoadComposableNodes(
-        composable_node_descriptions=components,
-        target_container=LaunchConfiguration("pointcloud_container_name"),
-    )
-    return [pointcloud_container_loader]
 
 
 def generate_launch_description():
@@ -139,24 +32,99 @@ def generate_launch_description():
 
     add_launch_arg("input_topic", "")
     add_launch_arg("output_topic", "")
-    add_launch_arg("use_multithread", "False")
     add_launch_arg("use_intra_process", "True")
     add_launch_arg("pointcloud_container_name", "pointcloud_container")
     add_launch_arg("use_pointcloud_map", "true")
+
+    # for compare map pipeline
+    down_sample_topic = (
+        "/perception/obstacle_segmentation/pointcloud_map_filtered/downsampled/pointcloud"
+    )
+
     return launch.LaunchDescription(
         [
             *launch_arguments,
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(
-                    PathJoinSubstitution(
-                        [
-                            FindPackageShare("autoware_agnocast_wrapper"),
-                            "launch",
-                            "agnocast_env.launch.py",
-                        ]
+            SetLaunchConfiguration("down_sample_voxel_size", "0.1"),
+            # no-compare map pipeline
+            LoadComposableNodes(
+                composable_node_descriptions=[
+                    ComposableNode(
+                        package="autoware_pointcloud_preprocessor",
+                        plugin="autoware::pointcloud_preprocessor::ApproximateDownsampleFilterComponent",
+                        name="voxel_grid_downsample_filter",
+                        remappings=[
+                            ("input", LaunchConfiguration("input_topic")),
+                            ("output", LaunchConfiguration("output_topic")),
+                        ],
+                        parameters=[
+                            {
+                                "voxel_size_x": LaunchConfiguration("down_sample_voxel_size"),
+                                "voxel_size_y": LaunchConfiguration("down_sample_voxel_size"),
+                                "voxel_size_z": LaunchConfiguration("down_sample_voxel_size"),
+                            }
+                        ],
+                        extra_arguments=[
+                            {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
+                        ],
                     ),
-                ),
+                ],
+                target_container=LaunchConfiguration("pointcloud_container_name"),
+                condition=UnlessCondition(LaunchConfiguration("use_pointcloud_map")),
             ),
-            OpaqueFunction(function=launch_setup),
+            # compare map pipeline
+            LoadComposableNodes(
+                composable_node_descriptions=[
+                    ComposableNode(
+                        package="autoware_pointcloud_preprocessor",
+                        plugin="autoware::pointcloud_preprocessor::VoxelGridDownsampleFilterComponent",
+                        name="voxel_grid_downsample_filter",
+                        remappings=[
+                            ("input", LaunchConfiguration("input_topic")),
+                            ("output", down_sample_topic),
+                        ],
+                        parameters=[
+                            {
+                                "voxel_size_x": LaunchConfiguration("down_sample_voxel_size"),
+                                "voxel_size_y": LaunchConfiguration("down_sample_voxel_size"),
+                                "voxel_size_z": LaunchConfiguration("down_sample_voxel_size"),
+                            }
+                        ],
+                        extra_arguments=[
+                            {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
+                        ],
+                    ),
+                    ComposableNode(
+                        package="autoware_compare_map_segmentation",
+                        plugin="autoware::compare_map_segmentation::VoxelBasedCompareMapFilterComponent",
+                        name="voxel_based_compare_map_filter",
+                        remappings=[
+                            ("input", down_sample_topic),
+                            ("map", "/map/pointcloud_map"),
+                            ("output", LaunchConfiguration("output_topic")),
+                            ("map_loader_service", "/map/get_differential_pointcloud_map"),
+                            ("kinematic_state", "/localization/kinematic_state"),
+                        ],
+                        parameters=[
+                            ParameterFile(
+                                param_file=PathJoinSubstitution(
+                                    [
+                                        FindPackageShare("autoware_launch_config"),
+                                        "config/perception/object_recognition/detection/pointcloud_filter/pointcloud_map_filter.param.yaml",
+                                    ]
+                                ),
+                                allow_substs=True,
+                            ),
+                            {
+                                "input_frame": "map",
+                            },
+                        ],
+                        extra_arguments=[
+                            {"use_intra_process_comms": False},
+                        ],
+                    ),
+                ],
+                target_container=LaunchConfiguration("pointcloud_container_name"),
+                condition=IfCondition(LaunchConfiguration("use_pointcloud_map")),
+            ),
         ]
     )
