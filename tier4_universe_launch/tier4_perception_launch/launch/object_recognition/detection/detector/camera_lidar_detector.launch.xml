@@ -1,7 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- cspell: ignore semseg -->
-
   <!-- Lidar + Camera detector parameters -->
   <arg name="lidar_detection_model_type">
     <choice value="bevfusion"/>
@@ -84,6 +82,9 @@
   <let name="detected_object_feature_remover/output/objects" value="$(var output/rule_detector/objects)"/>
 
   <arg name="enable_2d_detection" default="false" description="true: when 2d detection yolox model run the same machine, false: when it run in separate machine"/>
+
+  <include file="$(find-pkg-share autoware_agnocast_wrapper)/launch/agnocast_env.launch.xml"/>
+
   <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detector/camera_2d_detector.launch.xml" if="$(var enable_2d_detection)">
     <arg name="image_raw0" value="$(var input/camera0/image)"/>
     <arg name="image_raw1" value="$(var input/camera1/image)"/>
@@ -173,12 +174,13 @@
     </group>
 
     <!-- shape_estimation 1 -->
-    <group>
-      <include file="$(find-pkg-share autoware_shape_estimation)/launch/shape_estimation.launch.xml">
-        <arg name="input/objects" value="$(var shape_estimation1/input/clusters)"/>
-        <arg name="output/objects" value="$(var shape_estimation1/output/objects)"/>
-      </include>
-    </group>
+    <node pkg="autoware_shape_estimation" exec="shape_estimation_node" name="shape_estimation" output="screen">
+      <env name="LD_PRELOAD" value="$(var ld_preload_value)"/>
+      <remap from="input" to="$(var shape_estimation1/input/clusters)"/>
+      <remap from="objects" to="$(var shape_estimation1/output/objects)"/>
+      <param name="model_path" value="$(var data_path)/shape_estimation/pointnet.onnx"/>
+      <param from="$(find-pkg-share autoware_shape_estimation)/config/shape_estimation.param.yaml" allow_substs="true"/>
+    </node>
 
     <group>
       <push-ros-namespace namespace="camera_lidar_fusion"/>
@@ -223,26 +225,29 @@
       </group>
 
       <!-- low_intensity_cluster_filter -->
-      <group>
-        <include file="$(find-pkg-share autoware_raindrop_cluster_filter)/launch/low_intensity_cluster_filter.launch.xml" if="$(var use_low_intensity_cluster_filter)">
-          <arg name="input/objects" value="$(var low_intensity_cluster_filter/input/clusters)"/>
-          <arg name="output/objects" value="$(var low_intensity_cluster_filter/output/clusters)"/>
-        </include>
-      </group>
+      <node pkg="autoware_raindrop_cluster_filter" exec="low_intensity_cluster_filter_node" name="low_intensity_cluster_filter_node" output="screen">
+        <env name="LD_PRELOAD" value="$(var ld_preload_value)"/>
+        <remap from="input/objects" to="$(var low_intensity_cluster_filter/input/clusters)"/>
+        <remap from="output/objects" to="$(var low_intensity_cluster_filter/output/clusters)"/>
+        <param name="input_obstacle_pointcloud" value="false"/>
+        <param from="$(find-pkg-share autoware_raindrop_cluster_filter)/config/low_intensity_cluster_filter.param.yaml"/>
+      </node>
 
-      <group>
-        <include file="$(find-pkg-share autoware_shape_estimation)/launch/shape_estimation.launch.xml">
-          <arg name="input/objects" value="$(var shape_estimation2/input/clusters)"/>
-          <arg name="output/objects" value="$(var shape_estimation2/output/objects)"/>
-        </include>
-      </group>
+      <node pkg="autoware_shape_estimation" exec="shape_estimation_node" name="shape_estimation" output="screen">
+        <env name="LD_PRELOAD" value="$(var ld_preload_value)"/>
+        <remap from="input" to="$(var shape_estimation2/input/clusters)"/>
+        <remap from="objects" to="$(var shape_estimation2/output/objects)"/>
+        <param name="model_path" value="$(var data_path)/shape_estimation/pointnet.onnx"/>
+        <param from="$(find-pkg-share autoware_shape_estimation)/config/shape_estimation.param.yaml" allow_substs="true"/>
+      </node>
+
       <!-- convert DynamicObjectsWithFeatureArray to DynamicObjects -->
-      <group>
-        <include file="$(find-pkg-share autoware_detected_object_feature_remover)/launch/detected_object_feature_remover.launch.xml">
-          <arg name="input" value="$(var detected_object_feature_remover/input/objects_with_feature)"/>
-          <arg name="output" value="$(var detected_object_feature_remover/output/objects)"/>
-        </include>
-      </group>
+      <node pkg="autoware_detected_object_feature_remover" exec="detected_object_feature_remover_node" name="detected_object_feature_remover" output="screen">
+        <env name="LD_PRELOAD" value="$(var ld_preload_value)"/>
+        <remap from="~/input" to="$(var detected_object_feature_remover/input/objects_with_feature)"/>
+        <remap from="~/output" to="$(var detected_object_feature_remover/output/objects)"/>
+        <param name="run_convex_hull_conversion" value="false"/>
+      </node>
     </group>
   </group>
 </launch>

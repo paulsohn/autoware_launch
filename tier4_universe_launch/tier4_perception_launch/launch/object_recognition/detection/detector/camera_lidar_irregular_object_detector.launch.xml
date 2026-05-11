@@ -6,7 +6,6 @@
   <arg name="image_topic_name" default="image_raw" description="topic name of camera image"/>
 
   <!-- small unknown object detector -->
-
   <group>
     <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detector/camera_lidar_irregular_object_detector.launch.py">
       <arg name="input/concatenation_info" value="$(var input/concatenation_info)"/>
@@ -18,11 +17,10 @@
     </include>
   </group>
   <!-- Convex Hull conversion from DynamicObjectsWithFeatureArray to DynamicObjects -->
-  <group>
-    <include file="$(find-pkg-share autoware_detected_object_feature_remover)/launch/detected_object_feature_remover.launch.xml">
-      <arg name="input" value="clusters"/>
-      <arg name="output" value="objects"/>
-      <arg name="run_convex_hull_conversion" value="true"/>
-    </include>
-  </group>
+  <node pkg="autoware_detected_object_feature_remover" exec="detected_object_feature_remover_node" name="detected_object_feature_remover" output="screen">
+    <env name="LD_PRELOAD" value="$(var ld_preload_value)"/>
+    <remap from="~/input" to="clusters"/>
+    <remap from="~/output" to="objects"/>
+    <param name="run_convex_hull_conversion" value="true"/>
+  </node>
 </launch>
