@@ -97,20 +97,6 @@ class SmallUnknownPipeline:
             point_project_to_unrectified_image
         )
 
-    def get_agnocast_env(self):
-        agnocast_env = IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                PathJoinSubstitution(
-                    [
-                        FindPackageShare("autoware_agnocast_wrapper"),
-                        "launch",
-                        "agnocast_env.launch.py",
-                    ]
-                ),
-            ),
-        )
-        return agnocast_env
-
     def create_irregular_object_pipeline(self, input_topic, concat_info_topic, output_topic):
         components = []
         # create cropbox filter
@@ -152,7 +138,7 @@ class SmallUnknownPipeline:
                 name="ground_filter",
                 remappings=[
                     ("input", "cropped_range/pointcloud"),
-                    ("output", "obstacle_segmentation/pointcloud"),
+                    ("output", output_topic),
                 ],
                 parameters=[
                     ParameterFile(
@@ -208,23 +194,18 @@ class SmallUnknownPipeline:
 def launch_setup(context, *args, **kwargs):
     obstacle_pointcloud_topic = "obstacle_segmentation/pointcloud"
     pipeline = SmallUnknownPipeline(context)
-    agnocast_env = pipeline.get_agnocast_env()
-    components = []
-    components.extend(
-        pipeline.create_irregular_object_pipeline(
+    loader = LoadComposableNodes(
+        composable_node_descriptions=pipeline.create_irregular_object_pipeline(
             LaunchConfiguration("input/pointcloud"),
             LaunchConfiguration("input/concatenation_info"),
             obstacle_pointcloud_topic,
-        )
-    )
-    loader = LoadComposableNodes(
-        composable_node_descriptions=components,
+        ),
         target_container=LaunchConfiguration("pointcloud_container_name"),
     )
     roi_pointcloud_fusion_node = pipeline.create_roi_pointcloud_fusion_node(
         obstacle_pointcloud_topic, LaunchConfiguration("output_topic")
     )
-    return [agnocast_env, loader, roi_pointcloud_fusion_node]
+    return [loader, roi_pointcloud_fusion_node]
 
 
 def generate_launch_description():
