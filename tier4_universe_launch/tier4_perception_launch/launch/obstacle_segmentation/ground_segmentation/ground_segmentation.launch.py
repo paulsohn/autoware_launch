@@ -13,32 +13,25 @@
 # limitations under the License.
 import launch
 from launch.actions import DeclareLaunchArgument
+from launch.actions import IncludeLaunchDescription
 from launch.actions import OpaqueFunction
 from launch.actions import SetLaunchConfiguration
-from launch.conditions import IfCondition
-from launch.conditions import UnlessCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
 from launch_ros.parameter_descriptions import ParameterFile
 from launch_ros.substitutions import FindPackageShare
-import yaml
 
 
 class GroundSegmentationPipeline:
     def __init__(self, context):
         self.context = context
         self.vehicle_info = self.get_vehicle_info()
-        ground_segmentation_param_path = PathJoinSubstitution(
-            [
-                FindPackageShare("autoware_launch_config"),
-                "config/perception/obstacle_segmentation/ground_segmentation/ground_segmentation.param.yaml",
-            ]
-        ).perform(context)
 
-        with open(ground_segmentation_param_path, "r") as f:
-            self.ground_segmentation_param = yaml.safe_load(f)["/**"]["ros__parameters"]
+        self.additional_lidars = []
+        self.ransac_input_topics = []
 
         self.single_frame_obstacle_seg_output = (
             "/perception/obstacle_segmentation/single_frame/pointcloud"
@@ -75,30 +68,13 @@ class GroundSegmentationPipeline:
         p["max_height_offset"] = gp["vehicle_height"]
         return p
 
-    def get_vehicle_mirror_info(self):
-        path = LaunchConfiguration("vehicle_mirror_param_file").perform(self.context)
-        with open(path, "r") as f:
-            p = yaml.safe_load(f)
-        return p
-
     def create_additional_pipeline(self, lidar_name):
-        max_z = (
-            self.vehicle_info["max_height_offset"]
-            + self.ground_segmentation_param[f"{lidar_name}_crop_box_filter"]["parameters"][
-                "margin_max_z"
-            ]
-        )
-        min_z = (
-            self.vehicle_info["min_height_offset"]
-            + self.ground_segmentation_param[f"{lidar_name}_crop_box_filter"]["parameters"][
-                "margin_min_z"
-            ]
-        )
-        # Get the plugin name from the full plugin path
-        ground_segmentation_plugin_name = self.ground_segmentation_param[
-            f"{lidar_name}_ground_filter"
-        ]["plugin"]
-        ground_segmentation_plugin_name = ground_segmentation_plugin_name.split("::")[-1]
+        max_z = self.vehicle_info["max_height_offset"] + LaunchConfiguration(
+            f"{lidar_name}_crop_box_filter_margin_max_z"
+        ).perform(self.context)
+        min_z = self.vehicle_info["min_height_offset"] + LaunchConfiguration(
+            f"{lidar_name}_crop_box_filter_margin_min_z"
+        ).perform(self.context)
 
         components = []
         components.append(
@@ -111,13 +87,22 @@ class GroundSegmentationPipeline:
                     ("output", f"{lidar_name}/range_cropped/pointcloud"),
                 ],
                 parameters=[
+                    ParameterFile(
+                        param_file=PathJoinSubstitution(
+                            [
+                                FindPackageShare("autoware_launch_config"),
+                                "config/perception/obstacle_segmentation/ground_segmentation",
+                                f"{lidar_name}_crop_box_filter.param.yaml",
+                            ]
+                        ),
+                        allow_substs=True,
+                    ),
                     {
                         "input_frame": LaunchConfiguration("base_frame"),
                         "output_frame": LaunchConfiguration("base_frame"),
                         "max_z": max_z,
                         "min_z": min_z,
                     },
-                    self.ground_segmentation_param[f"{lidar_name}_crop_box_filter"]["parameters"],
                 ],
                 extra_arguments=[
                     {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
@@ -128,14 +113,23 @@ class GroundSegmentationPipeline:
         components.append(
             ComposableNode(
                 package="autoware_ground_segmentation",
-                plugin="autoware::ground_segmentation::" + ground_segmentation_plugin_name,
+                plugin="autoware::ground_segmentation::ScanGroundFilterComponent",
                 name=f"{lidar_name}_ground_filter",
                 remappings=[
                     ("input", f"{lidar_name}/range_cropped/pointcloud"),
                     ("output", f"{lidar_name}/pointcloud"),
                 ],
                 parameters=[
-                    self.ground_segmentation_param[f"{lidar_name}_ground_filter"]["parameters"]
+                    ParameterFile(
+                        param_file=PathJoinSubstitution(
+                            [
+                                FindPackageShare("autoware_launch_config"),
+                                "config/perception/obstacle_segmentation/ground_segmentation",
+                                f"{lidar_name}_ground_filter.param.yaml",
+                            ]
+                        ),
+                        allow_substs=True,
+                    ),
                 ],
                 extra_arguments=[
                     {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
@@ -160,7 +154,7 @@ class GroundSegmentationPipeline:
                 ],
                 parameters=[
                     {
-                        "input_topics": self.ground_segmentation_param["ransac_input_topics"],
+                        "input_topics": self.ransac_input_topics,
                         "output_frame": LaunchConfiguration("base_frame"),
                         "timeout_sec": 1.0,
                         "input_twist_topic_type": "odom",
@@ -183,13 +177,21 @@ class GroundSegmentationPipeline:
                     ("output", "detection_area/pointcloud"),
                 ],
                 parameters=[
+                    ParameterFile(
+                        param_file=PathJoinSubstitution(
+                            [
+                                # this file should exist if using ransac
+                                FindPackageShare("autoware_launch_config"),
+                                "config/perception/obstacle_segmentation/ground_segmentation",
+                                "short_height_obstacle_detection_area_filter.param.yaml",
+                            ]
+                        ),
+                        allow_substs=True,
+                    ),
                     {
                         "input_frame": LaunchConfiguration("base_frame"),
                         "output_frame": LaunchConfiguration("base_frame"),
                     },
-                    self.ground_segmentation_param["short_height_obstacle_detection_area_filter"][
-                        "parameters"
-                    ],
                 ],
                 extra_arguments=[
                     {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
@@ -222,14 +224,26 @@ class GroundSegmentationPipeline:
         components.append(
             ComposableNode(
                 package="autoware_ground_segmentation",
-                plugin="autoware::ground_segmentation::" + "RANSACGroundFilterComponent",
+                plugin="autoware::ground_segmentation::RANSACGroundFilterComponent",
                 name="ransac_ground_filter",
                 namespace="plane_fitting",
                 remappings=[
                     ("input", "vector_map_filtered/pointcloud"),
                     ("output", "pointcloud"),
                 ],
-                parameters=[self.ground_segmentation_param["ransac_ground_filter"]["parameters"]],
+                parameters=[
+                    ParameterFile(
+                        param_file=PathJoinSubstitution(
+                            [
+                                # this file should exist if using ransac
+                                FindPackageShare("autoware_launch_config"),
+                                "config/perception/obstacle_segmentation/ground_segmentation",
+                                "ransac_ground_filter.param.yaml",
+                            ]
+                        ),
+                        allow_substs=True,
+                    ),
+                ],
                 extra_arguments=[
                     {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
                 ],
@@ -239,19 +253,12 @@ class GroundSegmentationPipeline:
         return components
 
     def create_common_pipeline(self, input_topic, output_topic):
-        max_z = (
-            self.vehicle_info["max_height_offset"]
-            + self.ground_segmentation_param["common_crop_box_filter"]["parameters"]["margin_max_z"]
-        )
-        min_z = (
-            self.vehicle_info["min_height_offset"]
-            + self.ground_segmentation_param["common_crop_box_filter"]["parameters"]["margin_min_z"]
-        )
-        # Get the plugin name from the full plugin path
-        ground_segmentation_plugin_name = self.ground_segmentation_param["common_ground_filter"][
-            "plugin"
-        ]
-        ground_segmentation_plugin_name = ground_segmentation_plugin_name.split("::")[-1]
+        max_z = self.vehicle_info["max_height_offset"] + LaunchConfiguration(
+            "common_crop_box_filter_margin_max_z"
+        ).perform(self.context)
+        min_z = self.vehicle_info["min_height_offset"] + LaunchConfiguration(
+            "common_crop_box_filter_margin_min_z"
+        ).perform(self.context)
 
         components = []
         components.append(
@@ -264,13 +271,22 @@ class GroundSegmentationPipeline:
                     ("output", "range_cropped/pointcloud"),
                 ],
                 parameters=[
+                    ParameterFile(
+                        param_file=PathJoinSubstitution(
+                            [
+                                FindPackageShare("autoware_launch_config"),
+                                "config/perception/obstacle_segmentation/ground_segmentation",
+                                "common_crop_box_filter.param.yaml",
+                            ]
+                        ),
+                        allow_substs=True,
+                    ),
                     {
                         "input_frame": LaunchConfiguration("base_frame"),
                         "output_frame": LaunchConfiguration("base_frame"),
                         "max_z": max_z,
                         "min_z": min_z,
                     },
-                    self.ground_segmentation_param["common_crop_box_filter"]["parameters"],
                 ],
                 extra_arguments=[
                     {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
@@ -281,17 +297,28 @@ class GroundSegmentationPipeline:
         components.append(
             ComposableNode(
                 package="autoware_ground_segmentation",
-                plugin="autoware::ground_segmentation::" + ground_segmentation_plugin_name,
+                plugin="autoware::ground_segmentation::ScanGroundFilterComponent",
                 name="common_ground_filter",
                 remappings=[
                     ("input", "range_cropped/pointcloud"),
                     ("output", output_topic),
                 ],
                 parameters=[
-                    self.ground_segmentation_param["common_ground_filter"]["parameters"],
+                    ParameterFile(
+                        param_file=PathJoinSubstitution(
+                            [
+                                FindPackageShare("autoware_launch_config"),
+                                "config/perception/obstacle_segmentation/ground_segmentation",
+                                "common_ground_filter.param.yaml",
+                            ]
+                        ),
+                        allow_substs=True,
+                    ),
                     self.vehicle_info,
-                    {"input_frame": "base_link"},
-                    {"output_frame": "base_link"},
+                    {
+                        "input_frame": LaunchConfiguration("base_frame"),
+                        "output_frame": LaunchConfiguration("base_frame"),
+                    },
                 ],
                 extra_arguments=[
                     {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
@@ -303,9 +330,8 @@ class GroundSegmentationPipeline:
     def create_single_frame_obstacle_segmentation_components(
         self, input_topic, output_topic, output_info_topic
     ):
-        additional_lidars = self.ground_segmentation_param["additional_lidars"]
-        use_ransac = bool(self.ground_segmentation_param["ransac_input_topics"])
-        use_additional = bool(additional_lidars)
+        use_ransac = bool(self.ransac_input_topics)
+        use_additional = bool(self.additional_lidars)
         relay_topic = "all_lidars/pointcloud"
         common_pipeline_output = (
             "common/pointcloud" if use_additional or use_ransac else output_topic
@@ -317,12 +343,12 @@ class GroundSegmentationPipeline:
         )
 
         if use_additional:
-            for lidar_name in additional_lidars:
+            for lidar_name in self.additional_lidars:
                 components.extend(self.create_additional_pipeline(lidar_name))
             components.append(
                 self.get_additional_lidars_concatenated_component(
                     input_topics=[common_pipeline_output]
-                    + [f"{x}/pointcloud" for x in additional_lidars],
+                    + [f"{x}/pointcloud" for x in self.additional_lidars],
                     output_topic=relay_topic if use_ransac else output_topic,
                     output_info_topic=relay_topic + "_info" if use_ransac else output_info_topic,
                 )
@@ -361,9 +387,10 @@ class GroundSegmentationPipeline:
                         param_file=PathJoinSubstitution(
                             [
                                 FindPackageShare("autoware_occupancy_grid_map_outlier_filter"),
-                                "/config/occupancy_grid_map_outlier_filter.param.yaml",
+                                "config/occupancy_grid_map_outlier_filter.param.yaml",
                             ]
-                        )
+                        ),
+                        allow_substs=True,
                     )
                 ],
                 extra_arguments=[
@@ -398,10 +425,13 @@ class GroundSegmentationPipeline:
                         "use_inpaint": True,
                         "inpaint_radius": 1.0,
                         "lane_margin": 2.0,
-                        "param_file_path": [
-                            FindPackageShare("autoware_launch_config"),
-                            "/config/perception/obstacle_segmentation/ground_segmentation/elevation_map_parameters.yaml",
-                        ],
+                        "param_file_path": PathJoinSubstitution(
+                            [
+                                FindPackageShare("autoware_launch_config"),
+                                "config/perception/obstacle_segmentation/ground_segmentation",
+                                "elevation_map_parameters.yaml",
+                            ]
+                        ),
                         "elevation_map_directory": PathJoinSubstitution(
                             [
                                 FindPackageShare("autoware_elevation_map_loader"),
@@ -570,7 +600,7 @@ def launch_setup(context, *args, **kwargs):
                         param_file=PathJoinSubstitution(
                             [
                                 FindPackageShare("autoware_ground_segmentation_cuda"),
-                                "/config/cuda_scan_ground_segmentation_filter.param.yaml",
+                                "config/cuda_scan_ground_segmentation_filter.param.yaml",
                             ]
                         ),
                         allow_substs=True,
@@ -644,20 +674,28 @@ def generate_launch_description():
     add_launch_arg("input/pointcloud", "/sensing/lidar/concatenated/pointcloud")
     add_launch_arg("use_cuda_ground_segmentation", "False")
 
-    set_container_executable = SetLaunchConfiguration(
-        "container_executable",
-        "component_container",
-        condition=UnlessCondition(LaunchConfiguration("use_multithread")),
-    )
-
-    set_container_mt_executable = SetLaunchConfiguration(
-        "container_executable",
-        "component_container_mt",
-        condition=IfCondition(LaunchConfiguration("use_multithread")),
-    )
-
     return launch.LaunchDescription(
-        launch_arguments
-        + [set_container_executable, set_container_mt_executable]
-        + [OpaqueFunction(function=launch_setup)]
+        [
+            *launch_arguments,
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("autoware_agnocast_wrapper"),
+                            "launch",
+                            "agnocast_env.launch.py",
+                        ]
+                    ),
+                ),
+            ),
+            SetLaunchConfiguration(
+                "common_crop_box_filter_margin_max_z",
+                "0.0",
+            ),
+            SetLaunchConfiguration(
+                "common_crop_box_filter_margin_min_z",
+                "-2.5",
+            ),
+            OpaqueFunction(function=launch_setup),
+        ],
     )

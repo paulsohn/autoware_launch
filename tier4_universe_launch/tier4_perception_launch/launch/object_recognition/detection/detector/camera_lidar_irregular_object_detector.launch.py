@@ -16,9 +16,6 @@ import launch
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch.actions import OpaqueFunction
-from launch.actions import SetLaunchConfiguration
-from launch.conditions import IfCondition
-from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
@@ -85,7 +82,7 @@ class SmallUnknownPipeline:
                     camera_id
                 ]
             )
-        
+
         self.roi_pointcloud_fusion_sync_param["rois_timestamp_offsets"] = rois_timestamp_offsets
         self.roi_pointcloud_fusion_sync_param["approximate_camera_projection"] = (
             approximate_camera_projection
@@ -164,7 +161,8 @@ class SmallUnknownPipeline:
                                 FindPackageShare("autoware_launch_config"),
                                 "config/perception/object_recognition/detection/irregular_object_detection/ground_segmentation.param.yaml",
                             ],
-                        ),                    ),
+                        ),
+                    ),
                 ],
                 extra_arguments=[
                     {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
@@ -248,19 +246,20 @@ def generate_launch_description():
     add_launch_arg("pointcloud_container_name", "pointcloud_container")
     add_launch_arg("use_pointcloud_container", "True")
 
-    set_container_executable = SetLaunchConfiguration(
-        "container_executable",
-        "component_container",
-        condition=UnlessCondition(LaunchConfiguration("use_multithread")),
-    )
-
-    set_container_mt_executable = SetLaunchConfiguration(
-        "container_executable",
-        "component_container_mt",
-        condition=IfCondition(LaunchConfiguration("use_multithread")),
-    )
     return launch.LaunchDescription(
-        launch_arguments
-        + [set_container_executable, set_container_mt_executable]
-        + [OpaqueFunction(function=launch_setup)]
+        [
+            *launch_arguments,
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("autoware_agnocast_wrapper"),
+                            "launch",
+                            "agnocast_env.launch.py",
+                        ]
+                    ),
+                ),
+            ),
+            OpaqueFunction(function=launch_setup),
+        ],
     )

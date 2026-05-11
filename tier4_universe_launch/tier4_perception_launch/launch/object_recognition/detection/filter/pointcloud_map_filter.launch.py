@@ -11,14 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-
 import launch
 from launch.actions import DeclareLaunchArgument
+from launch.actions import IncludeLaunchDescription
 from launch.actions import OpaqueFunction
-from launch.actions import SetLaunchConfiguration
-from launch.conditions import IfCondition
-from launch.conditions import UnlessCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.actions import LoadComposableNodes
@@ -146,18 +143,20 @@ def generate_launch_description():
     add_launch_arg("use_intra_process", "True")
     add_launch_arg("pointcloud_container_name", "pointcloud_container")
     add_launch_arg("use_pointcloud_map", "true")
-    set_container_executable = SetLaunchConfiguration(
-        "container_executable",
-        "component_container",
-        condition=UnlessCondition(LaunchConfiguration("use_multithread")),
-    )
-    set_container_mt_executable = SetLaunchConfiguration(
-        "container_executable",
-        "component_container_mt",
-        condition=IfCondition(LaunchConfiguration("use_multithread")),
-    )
     return launch.LaunchDescription(
-        launch_arguments
-        + [set_container_executable, set_container_mt_executable]
-        + [OpaqueFunction(function=launch_setup)]
+        [
+            *launch_arguments,
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("autoware_agnocast_wrapper"),
+                            "launch",
+                            "agnocast_env.launch.py",
+                        ]
+                    ),
+                ),
+            ),
+            OpaqueFunction(function=launch_setup),
+        ]
     )

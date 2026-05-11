@@ -17,10 +17,10 @@ from itertools import chain
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import GroupAction
+from launch.actions import IncludeLaunchDescription
 from launch.actions import OpaqueFunction
-from launch.actions import SetLaunchConfiguration
 from launch.conditions import IfCondition
-from launch.conditions import UnlessCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
 from launch.substitutions import PythonExpression
@@ -50,15 +50,14 @@ def launch_setup(context, *args, **kwargs):
 
     # Create containers for all cameras
     traffic_light_recognition_containers = [
-        create_traffic_light_node_container(namespace, context, *args, **kwargs)
-        for namespace in camera_namespaces
+        create_traffic_light_node_container(namespace) for namespace in camera_namespaces
     ]
     traffic_light_recognition_containers = list(chain(*traffic_light_recognition_containers))
 
     return traffic_light_recognition_containers
 
 
-def create_traffic_light_node_container(namespace, context, *args, **kwargs):
+def create_traffic_light_node_container(namespace):
     camera_arguments = {
         "input/camera_info": f"/sensing/camera/{namespace}/camera_info",
         "input/image": f"/sensing/camera/{namespace}/image_raw",
@@ -427,23 +426,20 @@ def generate_launch_description():
     add_launch_arg("use_intra_process", "False")
     add_launch_arg("use_multithread", "False")
 
-    set_container_executable = SetLaunchConfiguration(
-        "container_executable",
-        "component_container",
-        condition=UnlessCondition(LaunchConfiguration("use_multithread")),
-    )
-
-    set_container_mt_executable = SetLaunchConfiguration(
-        "container_executable",
-        "component_container_mt",
-        condition=IfCondition(LaunchConfiguration("use_multithread")),
-    )
-
     return LaunchDescription(
         [
             *launch_arguments,
-            set_container_executable,
-            set_container_mt_executable,
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("autoware_agnocast_wrapper"),
+                            "launch",
+                            "agnocast_env.launch.py",
+                        ]
+                    ),
+                ),
+            ),
             OpaqueFunction(function=launch_setup),
         ]
     )
