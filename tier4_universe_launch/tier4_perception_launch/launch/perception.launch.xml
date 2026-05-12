@@ -1,10 +1,18 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- cspell: ignore semseg -->
+  <arg name="use_sim_time" default="false"/>
+  <arg name="vehicle_model" default="sample_vehicle"/>
 
-  <!-- Parameter files -->
-  <arg name="lidar_detection_model"/>
-  <arg name="tracker_publish_merged_objects"/>
+  <!-- Global parameters -->
+  <group scoped="false">
+    <include file="$(find-pkg-share autoware_global_parameter_loader)/launch/global_params.launch.py">
+      <arg name="use_sim_time" value="$(var use_sim_time)"/>
+      <arg name="vehicle_model" value="$(var vehicle_model)"/>
+    </include>
+  </group>
+
+  <arg name="lidar_detection_model" default="centerpoint"/>
+  <arg name="tracker_publish_merged_objects" value="false"/>
 
   <!-- ML model parameters -->
   <let name="lidar_detection_model_type" value="$(eval &quot;'$(var lidar_detection_model)'.split('/')[0]&quot;)"/>
@@ -50,7 +58,7 @@
   <arg name="detection_rois8" default="/perception/object_recognition/detection/rois8"/>
   <arg name="image_number" default="6" description="choose image raw number(1-8)"/>
 
-  <arg name="segmentation_pointcloud_fusion_camera_ids" default="[0,1,5]" description="list of camera ids used for segmentation_pointcloud_fusion node"/>
+  <arg name="segmentation_pointcloud_fusion_camera_ids" default="[0,2,4]" description="list of camera ids used for segmentation_pointcloud_fusion node"/>
   <arg name="camera_vru_detector_rois_ids" default="[0]" description="list of rois ids used for detecting VRU."/>
   <arg name="ml_camera_lidar_merger_priority_mode" default="0" description="priority mode for ml and camera_lidar merger, options: `0: Object0`, `1: Object1`, `2: ConfidenceBased`, `3: ClassBased`"/>
   <arg name="pointcloud_container_name" default="pointcloud_container"/>
@@ -59,7 +67,7 @@
   <!-- Pipeline junctions -->
   <arg name="use_vector_map" default="true" description="use vector map in prediction"/>
   <arg name="use_pointcloud_map" default="true" description="use pointcloud map in detection"/>
-  <arg name="use_low_height_cropbox" default="true" description="use low height crop filter in the euclidean clustering"/>
+  <arg name="use_low_height_cropbox" default="false" description="use low height crop filter in the euclidean clustering"/>
   <arg name="use_object_filter" default="true" description="use object filter"/>
   <arg name="objects_filter_method" default="lanelet_filter" description="options: `lanelet_filter` or `position_filter`"/>
   <arg name="use_irregular_object_detector" default="true" description="enable pipeline for small unknown object detection"/>
@@ -74,19 +82,19 @@
   <arg name="objects_validation_method" default="obstacle_pointcloud" description="options: `obstacle_pointcloud` or `occupancy_grid`"/>
   <arg name="use_perception_online_evaluator" default="false" description="use perception online evaluator"/>
   <arg name="use_perception_analytics_publisher" default="true" description="use perception analytics publisher"/>
-  <arg name="use_obstacle_segmentation_single_frame_filter" description="use single frame filter at the ground segmentation"/>
-  <arg name="use_obstacle_segmentation_time_series_filter" description="use time series filter at the ground segmentation"/>
+  <arg name="use_obstacle_segmentation_single_frame_filter" default="false" description="use single frame filter at the ground segmentation"/>
+  <arg name="use_obstacle_segmentation_time_series_filter" default="true" description="use time series filter at the ground segmentation"/>
   <arg name="use_camera_vru_detector" default="false" description="enable pipeline for camera based VRU object detection"/>
   <arg name="use_cuda_ground_segmentation" default="false" description="use cuda ground segmentation filter at the ground segmentation"/>
 
   <!-- traffic light recognition options to switch launch function/module -->
-  <arg name="use_traffic_light_recognition"/>
-  <arg name="traffic_light_recognition/camera_namespaces"/>
-  <arg name="traffic_light_recognition/use_high_accuracy_detection"/>
-  <arg name="traffic_light_recognition/high_accuracy_detection_type"/>
+  <arg name="use_traffic_light_recognition" default="true"/>
+  <arg name="traffic_light_recognition/camera_namespaces" default="[camera6, camera7]"/>
+  <arg name="traffic_light_recognition/use_high_accuracy_detection" default="true"/>
+  <arg name="traffic_light_recognition/high_accuracy_detection_type" default="fine_detection"/>
 
   <!-- traffic light recognition parameters -->
-  <arg name="input_pointcloud_for_traffic_light_occlusion_predictor"/>
+  <arg name="input_pointcloud_for_traffic_light_occlusion_predictor" default="/sensing/lidar/top/pointcloud_raw_ex"/>
 
   <!-- Whether to use detection by tracker -->
   <arg name="use_detection_by_tracker" default="true"/>
@@ -100,7 +108,7 @@
   <arg name="input/radar" default="/sensing/radar/detected_objects"/>
 
   <!-- Object merger method: whether to enable multi-channel tracker merger -->
-  <arg name="use_multi_channel_tracker_merger" default="false" description="if it is true, replace the multi step merger to multi-channel tracker merger."/>
+  <arg name="use_multi_channel_tracker_merger" default="true" description="if it is true, replace the multi step merger to multi-channel tracker merger."/>
   <arg name="output/tracker_merged_objects" default="/perception/object_recognition/detection/objects"/>
   <!-- Downsample pointcloud for perception usage -->
   <arg name="downsample_perception_common_pointcloud" default="false"/>
