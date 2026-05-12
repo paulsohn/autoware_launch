@@ -173,10 +173,8 @@
   <group if="$(var switch/detector/lidar_rule)">
     <!-- Lidar rule-based detectors-->
     <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detector/lidar_rule_detector.launch.xml">
+      <arg name="lidar_detection_model_type" value="$(var lidar_detection_model_type)"/>
       <arg name="node/pointcloud_container" value="$(var node/pointcloud_container)"/>
-      <arg name="input/pointcloud_map/pointcloud" value="/perception/object_recognition/detection/pointcloud_map_filtered/pointcloud"/>
-      <arg name="output/cluster_objects" value="/perception/object_recognition/detection/clustering/objects_with_feature"/>
-      <arg name="output/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects"/>
       <arg name="use_low_height_cropbox" value="$(var use_low_height_cropbox)"/>
     </include>
   </group>
