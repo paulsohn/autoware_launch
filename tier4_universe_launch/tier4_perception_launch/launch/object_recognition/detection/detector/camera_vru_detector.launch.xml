@@ -2,16 +2,6 @@
 <launch>
   <push-ros-namespace namespace="camera_vru"/>
 
-  <!-- internal interfaces -->
-  <let name="roi_detector/output/objects0" value="roi_detector_objects0"/>
-  <let name="roi_detector/output/objects1" value="roi_detector_objects1"/>
-  <let name="roi_detector/output/objects2" value="roi_detector_objects2"/>
-  <let name="roi_detector/output/objects3" value="roi_detector_objects3"/>
-  <let name="roi_detector/output/objects4" value="roi_detector_objects4"/>
-  <let name="roi_detector/output/objects5" value="roi_detector_objects5"/>
-  <let name="roi_detector/output/objects6" value="roi_detector_objects6"/>
-  <let name="roi_detector/output/objects7" value="roi_detector_objects7"/>
-
   <!-- parameters -->
   <arg name="rois_ids" default="[0, 1]"/>
 
