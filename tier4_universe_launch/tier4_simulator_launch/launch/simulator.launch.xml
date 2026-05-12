@@ -1,14 +1,8 @@
 <launch>
-  <!-- Parameter files -->
-  <!-- cspell: ignore semseg, comlops -->
+  <arg name="scenario_simulation"/>
+
   <arg name="launch_fault_injection" default="false"/>
-  <arg name="fault_injection_param_path"/>
-  <arg name="fault_injection_input_diagnostics" default="/diagnostics"/>
-  <arg name="fault_injection_output_diagnostics" default="/diagnostics/fault_injection"/>
-  <arg name="data_path" default="$(env HOME)/autoware_data/ml_models" description="packages data and artifacts directory path"/>
-
   <arg name="launch_simulator_perception_modules" default="true"/>
-
   <arg name="launch_dummy_perception"/>
   <arg name="launch_dummy_vehicle"/>
   <arg
@@ -17,8 +11,6 @@
   />
   <arg name="launch_dummy_doors"/>
   <arg name="launch_scenario_simulator_v2_adapter"/>
-  <arg name="vehicle_info_param_file"/>
-  <arg name="raw_vehicle_cmd_converter_param_path"/>
 
   <arg name="perception/enable_detection_failure" default="true" description="enable to simulate detection failure when using dummy perception"/>
   <arg name="perception/enable_object_recognition" default="false" description="enable object recognition"/>
@@ -34,14 +26,12 @@
   <arg name="vehicle_model" description="vehicle model name"/>
   <arg name="initial_engage_state" default="true" description="/vehicle/engage state after starting Autoware"/>
 
-  <let name="vehicle_model_pkg" value="$(find-pkg-share $(var vehicle_model)_description)"/>
-
   <group if="$(var launch_simulator_perception_modules)">
     <group if="$(var launch_fault_injection)">
       <include file="$(find-pkg-share autoware_fault_injection)/launch/fault_injection.launch.xml">
-        <arg name="config_file" value="$(var fault_injection_param_path)"/>
-        <arg name="input/diagnostics" value="$(var fault_injection_input_diagnostics)"/>
-        <arg name="output/diagnostics" value="$(var fault_injection_output_diagnostics)"/>
+        <arg name="config_file" value="$(find-pkg-share autoware_launch_config)/config/simulator/fault_injection.param.yaml"/>
+        <arg name="input/diagnostics" value="/diagnostics"/>
+        <arg name="output/diagnostics" value="/diagnostics/fault_injection"/>
       </include>
     </group>
 
@@ -225,24 +215,28 @@
 
   <!-- Simulator model -->
   <group if="$(var launch_dummy_vehicle)">
-    <arg name="simulator_model" default="$(var vehicle_model_pkg)/config/simulator_model.param.yaml" description="path to the file of simulator model"/>
+    <let name="simulator_model_param_file" value="$(find-pkg-share $(var vehicle_model)_description)/config/simulator_model.param.yaml"/>
     <!-- 'pose_only' mode publishes the pose topic as an alternative to ndt_localizer. 'full_motion' mode publishes the odometry and acceleration topics as an alternative to localization modules. -->
     <let name="motion_publish_mode" value="pose_only" if="$(eval '&quot;$(var localization_sim_mode)&quot;==&quot;pose_twist_estimator&quot;')"/>
     <let name="motion_publish_mode" value="full_motion" unless="$(eval '&quot;$(var localization_sim_mode)&quot;==&quot;pose_twist_estimator&quot;')"/>
     <include file="$(find-pkg-share autoware_simple_planning_simulator)/launch/simple_planning_simulator.launch.py">
-      <arg name="vehicle_info_param_file" value="$(var vehicle_info_param_file)"/>
-      <arg name="simulator_model_param_file" value="$(var simulator_model)"/>
+      <arg name="vehicle_info_param_file" value="$(find-pkg-share $(var vehicle_model)_description)/config/vehicle_info.param.yaml"/>
+      <arg name="simulator_model_param_file" value="$(var simulator_model_param_file)"/>
       <arg name="initial_engage_state" value="$(var initial_engage_state)"/>
       <arg name="motion_publish_mode" value="$(var motion_publish_mode)"/>
     </include>
     <!-- This launch initializes the variable `use_actuation_command` -->
     <include file="$(find-pkg-share autoware_simple_planning_simulator)/launch/use_actuation_command.launch.py">
-      <arg name="simulator_model_param_file" value="$(var simulator_model)"/>
+      <arg name="simulator_model_param_file" value="$(var simulator_model_param_file)"/>
     </include>
     <group if="$(var use_actuation_command)">
       <include file="$(find-pkg-share autoware_raw_vehicle_cmd_converter)/launch/raw_vehicle_converter.launch.xml">
-        <arg name="config_file" value="$(var raw_vehicle_cmd_converter_param_path)"/>
+        <arg name="config_file" value="$(find-pkg-share autoware_launch_config)/config/vehicle/raw_vehicle_cmd_converter/raw_vehicle_cmd_converter.param.yaml"/>
       </include>
     </group>
+  </group>
+
+  <group if="$(var scenario_simulation)">
+    <include file="$(find-pkg-share autoware_dummy_infrastructure)/launch/dummy_infrastructure.launch.xml"/>
   </group>
 </launch>
