@@ -3,14 +3,6 @@
   <arg name="use_sim_time" default="false"/>
   <arg name="vehicle_model" default="sample_vehicle"/>
 
-  <!-- Global parameters -->
-  <group scoped="false">
-    <include file="$(find-pkg-share autoware_global_parameter_loader)/launch/global_params.launch.py">
-      <arg name="use_sim_time" value="$(var use_sim_time)"/>
-      <arg name="vehicle_model" value="$(var vehicle_model)"/>
-    </include>
-  </group>
-
   <arg name="pose_source" default="ndt" description="A string consisting of ndt, yabloc, artag and eagleye joined by underscores no matter the order. e.g. ndt_yabloc"/>
   <arg name="twist_source" default="gyro_odom"/>
   <arg name="initial_pose" default="[]" description="initial pose (x, y, z, quat_x, quat_y, quat_z, quat_w)"/>

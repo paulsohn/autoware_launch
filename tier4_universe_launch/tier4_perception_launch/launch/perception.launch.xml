@@ -1,16 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="use_sim_time" default="false"/>
-  <arg name="vehicle_model" default="sample_vehicle"/>
-
-  <!-- Global parameters -->
-  <group scoped="false">
-    <include file="$(find-pkg-share autoware_global_parameter_loader)/launch/global_params.launch.py">
-      <arg name="use_sim_time" value="$(var use_sim_time)"/>
-      <arg name="vehicle_model" value="$(var vehicle_model)"/>
-    </include>
-  </group>
-
   <arg name="lidar_detection_model" default="centerpoint"/>
   <arg name="tracker_publish_merged_objects" value="false"/>
 
