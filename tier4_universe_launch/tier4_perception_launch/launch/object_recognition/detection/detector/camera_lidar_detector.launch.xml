@@ -10,8 +10,8 @@
     <choice value="clustering"/>
   </arg>
   <arg name="lidar_detection_model_name" description="options: `bevfusion_lidar`, `centerpoint`, `centerpoint_tiny`, `centerpoint_sigma`, `pointpainting`, `transfusion` (non-exhaustive)"/>
-  <arg name="use_low_intensity_cluster_filter"/>
-  <arg name="use_image_segmentation_based_filter"/>
+  <arg name="use_low_intensity_cluster_filter" default="true"/>
+  <arg name="use_image_segmentation_based_filter" default="false" description="use image_segmentation_based_filter in clustering"/>
 
   <!-- External interfaces -->
   <arg name="number_of_cameras"/>

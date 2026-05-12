@@ -17,13 +17,9 @@
   <arg name="use_validator" description="use obstacle_pointcloud based validator"/>
   <arg name="use_short_range_detection"/>
   <arg name="use_camera_vru_detector"/>
-  <arg name="publish_merged_objects"/>
 
   <!-- External interface -->
   <arg name="lidar_detection_model_type" default="centerpoint"/>
-
-  <arg name="output/objects" default="/perception/object_recognition/tracking/objects"/>
-  <arg name="output/merged_objects" default="/perception/object_recognition/tracking/merged_objects"/>
 
   <group unless="$(var use_multi_channel_tracker_merger)">
     <!-- Internal interface -->
@@ -33,12 +29,12 @@
     <let name="radar_tracked_object_lanelet_filter/input/object" value="$(var radar_tracked_object_sorter/output/objects)"/>
     <let name="radar_tracked_object_lanelet_filter/output/object" value="/perception/object_recognition/tracking/radar/tracked_objects"/>
 
-    <let name="multi_object_tracker/output/objects" value="$(var output/objects)" unless="$(var use_radar_tracking_fusion)"/>
+    <let name="multi_object_tracker/output/objects" value="/perception/object_recognition/tracking/objects" unless="$(var use_radar_tracking_fusion)"/>
     <let name="multi_object_tracker/output/objects" value="/perception/object_recognition/tracking/near_objects" if="$(var use_radar_tracking_fusion)"/>
 
     <let name="tracker_merger/input/main_objects" value="$(var multi_object_tracker/output/objects)"/>
     <let name="tracker_merger/input/sub_objects" value="$(var radar_tracked_object_lanelet_filter/output/object)"/>
-    <let name="tracker_merger/output/objects" value="$(var output/objects)"/>
+    <let name="tracker_merger/output/objects" value="/perception/object_recognition/tracking/objects"/>
 
     <!-- Multi object tracking -->
     <include file="$(find-pkg-share autoware_multi_object_tracker)/launch/multi_object_tracker.launch.xml">
@@ -142,11 +138,11 @@
     <include file="$(find-pkg-share autoware_multi_object_tracker)/launch/multi_object_tracker.launch.xml">
       <!-- input/detectionNN/objects and input/detectionNN/channel implicitly passed -->
       <arg name="output/objects" value="$(var output/objects)"/>
-      <arg name="output/merged_objects" value="$(var output/merged_objects)"/>
+      <arg name="output/merged_objects" value="/perception/object_recognition/tracking/merged_objects"/>
       <arg name="data_association_matrix_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/tracking/multi_object_tracker/data_association_matrix.param.yaml"/>
       <arg name="input_channels_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/tracking/multi_object_tracker/input_channels.param.yaml"/>
       <arg name="tracker_setting_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/tracking/multi_object_tracker/multi_object_tracker_node.param.yaml"/>
-      <arg name="publish_merged_objects" value="$(var publish_merged_objects)"/>
+      <arg name="publish_merged_objects" value="false"/>
     </include>
   </group>
 </launch>

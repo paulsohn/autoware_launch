@@ -16,8 +16,7 @@
 
   <!-- External interfaces -->
   <arg name="input/pointcloud"/>
-  <arg name="output/objects"/>
-  <arg name="output/short_range_objects"/>
+  <let name="output/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects"/>
 
   <!-- short_range detection -->
   <group if="$(var use_short_range_detection)">
@@ -26,7 +25,7 @@
     <group>
       <include file="$(find-pkg-share autoware_lidar_centerpoint)/launch/lidar_centerpoint.launch.xml">
         <arg name="input/pointcloud" value="$(var input/pointcloud)"/>
-        <arg name="output/objects" value="$(var output/short_range_objects)"/>
+        <arg name="output/objects" value="/perception/object_recognition/detection/centerpoint_short_range/objects"/>
         <arg name="node_name" value="lidar_short_range_centerpoint"/>
         <arg name="model_name" value="centerpoint_short_range"/>
         <arg name="model_path" value="$(var data_path)/lidar_short_range_centerpoint"/>
