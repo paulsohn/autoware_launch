@@ -3,7 +3,6 @@
   <!--default parameter follows node setting -->
   <arg name="input/obstacle_pointcloud" default="concatenated/pointcloud"/>
   <arg name="input/raw_pointcloud" default="no_ground/oneshot/pointcloud"/>
-  <arg name="output" default="/perception/occupancy_grid_map/map"/>
   <arg name="use_intra_process" default="false"/>
   <arg name="use_multithread" default="false"/>
 
@@ -24,7 +23,7 @@
     <include file="$(find-pkg-share autoware_probabilistic_occupancy_grid_map)/launch/pointcloud_based_occupancy_grid_map.launch.py">
       <arg name="input/obstacle_pointcloud" value="$(var input/obstacle_pointcloud)"/>
       <arg name="input/raw_pointcloud" value="$(var input/raw_pointcloud)"/>
-      <arg name="output" value="$(var output)"/>
+      <arg name="output" value="/perception/occupancy_grid_map/map"/>
       <arg name="use_intra_process" value="$(var use_intra_process)"/>
       <arg name="use_multithread" value="$(var use_multithread)"/>
       <arg name="use_pointcloud_container" value="true"/>
@@ -40,7 +39,7 @@
     <include file="$(find-pkg-share autoware_probabilistic_occupancy_grid_map)/launch/laserscan_based_occupancy_grid_map.launch.py">
       <arg name="input/obstacle_pointcloud" value="$(var input/obstacle_pointcloud)"/>
       <arg name="input/raw_pointcloud" value="$(var input/raw_pointcloud)"/>
-      <arg name="output" value="$(var output)"/>
+      <arg name="output" value="/perception/occupancy_grid_map/map"/>
       <arg name="use_intra_process" value="$(var use_intra_process)"/>
       <arg name="use_multithread" value="$(var use_multithread)"/>
       <arg name="use_pointcloud_container" value="true"/>
@@ -57,7 +56,7 @@
   <group if="$(eval &quot;'$(var occupancy_grid_map/method)'=='multi_lidar_pointcloud_based'&quot;)">
     <include file="$(find-pkg-share autoware_probabilistic_occupancy_grid_map)/launch/multi_lidar_pointcloud_based_occupancy_grid_map.launch.py">
       <arg name="input/obstacle_pointcloud" value="$(var input/obstacle_pointcloud)"/>
-      <arg name="output" value="$(var output)"/>
+      <arg name="output" value="/perception/occupancy_grid_map/map"/>
       <arg name="use_intra_process" value="$(var use_intra_process)"/>
       <arg name="use_multithread" value="$(var use_multithread)"/>
       <arg name="use_pointcloud_container" value="true"/>

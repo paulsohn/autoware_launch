@@ -143,7 +143,6 @@
       <include file="$(find-pkg-share tier4_perception_launch)/launch/occupancy_grid_map/probabilistic_occupancy_grid_map.launch.xml">
         <arg name="input/obstacle_pointcloud" value="$(var unfiltered_obstacle_pointcloud)"/>
         <arg name="input/raw_pointcloud" value="$(var perception_pointcloud)"/>
-        <arg name="output" value="/perception/occupancy_grid_map/map"/>
         <arg name="use_intra_process" value="true"/>
         <arg name="use_multithread" value="true"/>
       </include>
