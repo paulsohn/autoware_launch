@@ -45,7 +45,7 @@ def generate_launch_description():
     )
 
     pointcloud_container = ComposableNodeContainer(
-        name=LaunchConfiguration("container_name"),
+        name="pointcloud_container",
         namespace="/",
         package=LaunchConfiguration("container_package"),
         executable=LaunchConfiguration("container_executable"),
@@ -56,7 +56,6 @@ def generate_launch_description():
     return LaunchDescription(
         [
             add_launch_arg("use_multithread", "false"),
-            add_launch_arg("container_name", "pointcloud_container"),
             agnocast_env_launch,
             GroupAction(
                 [

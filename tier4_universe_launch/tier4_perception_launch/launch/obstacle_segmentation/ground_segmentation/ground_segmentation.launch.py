@@ -96,8 +96,8 @@ class GroundSegmentationPipeline:
                         allow_substs=True,
                     ),
                     {
-                        "input_frame": LaunchConfiguration("base_frame"),
-                        "output_frame": LaunchConfiguration("base_frame"),
+                        "input_frame": "base_link",
+                        "output_frame": "base_link",
                         "max_z": max_z,
                         "min_z": min_z,
                     },
@@ -153,7 +153,7 @@ class GroundSegmentationPipeline:
                 parameters=[
                     {
                         "input_topics": self.ransac_input_topics,
-                        "output_frame": LaunchConfiguration("base_frame"),
+                        "output_frame": "base_link",
                         "timeout_sec": 1.0,
                         "input_twist_topic_type": "odom",
                     }
@@ -187,8 +187,8 @@ class GroundSegmentationPipeline:
                         allow_substs=True,
                     ),
                     {
-                        "input_frame": LaunchConfiguration("base_frame"),
-                        "output_frame": LaunchConfiguration("base_frame"),
+                        "input_frame": "base_link",
+                        "output_frame": "base_link",
                     },
                 ],
                 extra_arguments=[
@@ -280,8 +280,8 @@ class GroundSegmentationPipeline:
                         allow_substs=True,
                     ),
                     {
-                        "input_frame": LaunchConfiguration("base_frame"),
-                        "output_frame": LaunchConfiguration("base_frame"),
+                        "input_frame": "base_link",
+                        "output_frame": "base_link",
                         "max_z": max_z,
                         "min_z": min_z,
                     },
@@ -314,8 +314,8 @@ class GroundSegmentationPipeline:
                     ),
                     self.vehicle_info,
                     {
-                        "input_frame": LaunchConfiguration("base_frame"),
-                        "output_frame": LaunchConfiguration("base_frame"),
+                        "input_frame": "base_link",
+                        "output_frame": "base_link",
                     },
                 ],
                 extra_arguments=[
@@ -482,8 +482,8 @@ class GroundSegmentationPipeline:
                 ],
                 parameters=[
                     {
-                        "input_frame": LaunchConfiguration("base_frame"),
-                        "output_frame": LaunchConfiguration("base_frame"),
+                        "input_frame": "base_link",
+                        "output_frame": "base_link",
                         "voxel_size_x": 0.04,
                         "voxel_size_y": 0.04,
                         "voxel_size_z": 0.08,
@@ -535,7 +535,7 @@ class GroundSegmentationPipeline:
             parameters=[
                 {
                     "input_topics": input_topics,
-                    "output_frame": LaunchConfiguration("base_frame"),
+                    "output_frame": "base_link",
                     "input_twist_topic_type": "odom",
                 }
             ],
@@ -558,7 +558,7 @@ class GroundSegmentationPipeline:
             parameters=[
                 {
                     "input_topics": input_topics,
-                    "output_frame": LaunchConfiguration("base_frame"),
+                    "output_frame": "base_link",
                     "input_twist_topic_type": "odom",
                 }
             ],
@@ -610,7 +610,7 @@ def launch_setup(context, *args, **kwargs):
         return [
             LoadComposableNodes(
                 composable_node_descriptions=components,
-                target_container=LaunchConfiguration("pointcloud_container_name"),
+                target_container="/pointcloud_container",
             )
         ]
 
@@ -652,11 +652,12 @@ def launch_setup(context, *args, **kwargs):
                 output_topic=pipeline.output_topic,
             )
         )
-    pointcloud_container_loader = LoadComposableNodes(
-        composable_node_descriptions=components,
-        target_container=LaunchConfiguration("pointcloud_container_name"),
-    )
-    return [pointcloud_container_loader]
+    return [
+        LoadComposableNodes(
+            composable_node_descriptions=components,
+            target_container="/pointcloud_container",
+        )
+    ]
 
 
 def generate_launch_description():
@@ -665,10 +666,10 @@ def generate_launch_description():
     def add_launch_arg(name: str, default_value=None):
         launch_arguments.append(DeclareLaunchArgument(name, default_value=default_value))
 
-    add_launch_arg("base_frame", "base_link")
     add_launch_arg("use_intra_process", "True")
-    add_launch_arg("pointcloud_container_name", "pointcloud_container")
     add_launch_arg("input/pointcloud", "/sensing/lidar/concatenated/pointcloud")
+    add_launch_arg("use_single_frame_filter", "False")
+    add_launch_arg("use_time_series_filter", "True")
     add_launch_arg("use_cuda_ground_segmentation", "False")
 
     return launch.LaunchDescription(

@@ -16,15 +16,14 @@
   <arg name="initial_pose" default="[]" description="initial pose (x, y, z, quat_x, quat_y, quat_z, quat_w)"/>
   <arg name="system_run_mode" default="online" description="run mode in system"/>
   <arg name="input_pointcloud" default="/sensing/lidar/concatenated/pointcloud" description="The topic will be used in the localization util module"/>
-  <arg name="localization_pointcloud_container_name" default="/pointcloud_container" description="The target container to which pointcloud preprocessing nodes in localization be attached"/>
 
   <!-- localization module -->
   <group>
     <push-ros-namespace namespace="localization"/>
     <!-- pose_twist_estimator module -->
-    <include file="$(find-pkg-share tier4_localization_launch)/launch/pose_twist_estimator/pose_twist_estimator.launch.xml">
-      <arg name="localization_pointcloud_container_name" value="$(var localization_pointcloud_container_name)"/>
-    </include>
+    <group>
+      <include file="$(find-pkg-share tier4_localization_launch)/launch/pose_twist_estimator/pose_twist_estimator.launch.xml"/>
+    </group>
 
     <!-- pose_twist_fusion_filter module -->
     <group>

@@ -21,8 +21,7 @@
   <arg name="perception" default="true" description="launch perception"/>
   <arg name="planning" default="true" description="launch planning"/>
   <arg name="control" default="true" description="launch control"/>
-  <!-- Pointcloud container -->
-  <arg name="pointcloud_container_name" default="pointcloud_container"/>
+
   <!-- Vehicle -->
   <arg name="launch_vehicle_interface" default="false"/>
   <!-- Map -->
@@ -55,8 +54,6 @@
       <arg name="launch_control" value="$(var control)"/>
       <!-- Global parameters -->
       <arg name="use_sim_time" value="true"/>
-      <!-- Pointcloud container -->
-      <arg name="pointcloud_container_name" value="$(var pointcloud_container_name)"/>
       <!-- Vehicle -->
       <arg name="vehicle_id" value="$(var vehicle_id)"/>
       <arg name="launch_vehicle_interface" value="$(var launch_vehicle_interface)"/>

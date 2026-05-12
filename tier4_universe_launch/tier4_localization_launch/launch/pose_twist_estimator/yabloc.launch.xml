@@ -4,8 +4,6 @@
   <arg name="src_image" default="/sensing/camera/traffic_light/image_raw"/>
   <arg name="src_info" default="/sensing/camera/traffic_light/camera_info"/>
 
-  <let name="input_pose" value="/localization/pose_twist_fusion_filter/pose"/>
-
   <group>
     <push-ros-namespace namespace="yabloc"/>
 
@@ -35,7 +33,7 @@
       <include file="$(find-pkg-share yabloc_image_processing)/launch/yabloc_image_processing.launch.xml">
         <arg name="src_image" value="$(var src_image)"/>
         <arg name="src_info" value="$(var src_info)"/>
-        <arg name="input_pose" value="$(var input_pose)"/>
+        <arg name="input_pose" value="/localization/pose_twist_fusion_filter/pose"/>
         <!-- TODO: undeclared args -->
         <arg name="graph_segment_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/graph_segment.param.yaml"/>
         <arg name="segment_filter_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/segment_filter.param.yaml"/>
@@ -47,7 +45,7 @@
     <group>
       <push-ros-namespace namespace="map"/>
       <include file="$(find-pkg-share yabloc_common)/launch/yabloc_common.launch.xml">
-        <arg name="input_particle_pose" value="$(var input_pose)"/>
+        <arg name="input_particle_pose" value="/localization/pose_twist_fusion_filter/pose"/>
         <!-- TODO: undeclared args -->
         <arg name="ground_server_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/ground_server.param.yaml"/>
         <arg name="ll2_decomposer_param_path" value="$(find-pkg-share autoware_launch_config)/config/localization/yabloc/ll2_decomposer.param.yaml"/>

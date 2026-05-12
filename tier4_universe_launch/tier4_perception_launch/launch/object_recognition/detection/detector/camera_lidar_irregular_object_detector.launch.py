@@ -200,7 +200,7 @@ def launch_setup(context):
             LaunchConfiguration("input/pointcloud"),
             obstacle_pointcloud_topic,
         ),
-        target_container=LaunchConfiguration("pointcloud_container_name"),
+        target_container="/pointcloud_container",
     )
     roi_pointcloud_fusion_node = pipeline.create_roi_pointcloud_fusion_node(
         obstacle_pointcloud_topic, LaunchConfiguration("output_topic")
@@ -222,7 +222,6 @@ def generate_launch_description():
     add_launch_arg("use_intra_process", "True")
     add_launch_arg("use_multithread", "True")
     add_launch_arg("fusion_camera_ids", "[3,5]")
-    add_launch_arg("pointcloud_container_name", "pointcloud_container")
 
     return launch.LaunchDescription(
         [
