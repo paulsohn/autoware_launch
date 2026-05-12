@@ -3,14 +3,13 @@
   <!-- External interfaces -->
   <arg name="node/pointcloud_container"/>
   <arg name="input/pointcloud_map/pointcloud"/>
-  <arg name="input/obstacle_segmentation/pointcloud"/>
   <arg name="output/cluster_objects"/>
   <arg name="output/objects"/>
 
   <!-- Internal interfaces -->
   <let name="euclidean_cluster/input/pointcloud" value="$(var input/pointcloud_map/pointcloud)"/>
-  <let name="euclidean_cluster/output/clusters" value="$(var ros_namespace)/clustering/clusters"/>
-  <let name="shape_estimation/input/objects" value="$(var ros_namespace)/clustering/clusters"/>
+  <let name="euclidean_cluster/output/clusters" value="/perception/object_recognition/detection/clustering/clusters"/>
+  <let name="shape_estimation/input/objects" value="/perception/object_recognition/detection/clustering/clusters"/>
   <let name="shape_estimation/output/objects" value="$(var output/cluster_objects)"/>
   <let name="detected_object_feature_remover/input" value="$(var output/cluster_objects)"/>
   <let name="detected_object_feature_remover/output" value="$(var output/objects)"/>

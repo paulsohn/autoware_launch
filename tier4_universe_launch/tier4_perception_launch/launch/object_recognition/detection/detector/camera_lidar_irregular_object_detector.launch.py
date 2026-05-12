@@ -98,7 +98,7 @@ class SmallUnknownPipeline:
             point_project_to_unrectified_image
         )
 
-    def create_irregular_object_pipeline(self, input_topic, concat_info_topic, output_topic):
+    def create_irregular_object_pipeline(self, input_topic, output_topic):
         components = []
         # create cropbox filter
         components.append(
@@ -108,7 +108,7 @@ class SmallUnknownPipeline:
                 name="crop_box_filter",
                 remappings=[
                     ("input", input_topic),
-                    ("input/concatenation_info", concat_info_topic),
+                    ("input/concatenation_info", "/sensing/lidar/concatenated/pointcloud_info"),
                     ("output", "cropped_range/pointcloud"),
                 ],
                 parameters=[
@@ -192,13 +192,12 @@ class SmallUnknownPipeline:
         return node
 
 
-def launch_setup(context, *args, **kwargs):
+def launch_setup(context):
     obstacle_pointcloud_topic = "obstacle_segmentation/pointcloud"
     pipeline = SmallUnknownPipeline(context)
     loader = LoadComposableNodes(
         composable_node_descriptions=pipeline.create_irregular_object_pipeline(
             LaunchConfiguration("input/pointcloud"),
-            LaunchConfiguration("input/concatenation_info"),
             obstacle_pointcloud_topic,
         ),
         target_container=LaunchConfiguration("pointcloud_container_name"),
@@ -216,7 +215,6 @@ def generate_launch_description():
         launch_arguments.append(DeclareLaunchArgument(name, default_value=default_value))
 
     add_launch_arg("input/pointcloud", "/sensing/lidar/concatenated/pointcloud")
-    add_launch_arg("input/concatenation_info", "/sensing/lidar/concatenated/pointcloud_info")
     add_launch_arg(
         "output_topic", "/perception/object_recognition/detection/irregular_object/clusters"
     )

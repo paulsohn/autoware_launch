@@ -1,17 +1,15 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="input/concatenation_info"/>
+  <arg name="node/pointcloud_container"/>
   <arg name="input/pointcloud"/>
-  <arg name="fusion_camera_ids" default="[0]" description="camera IDs used for fusion"/>
 
   <!-- small unknown object detector -->
   <group>
     <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detector/camera_lidar_irregular_object_detector.launch.py">
-      <arg name="input/concatenation_info" value="$(var input/concatenation_info)"/>
       <arg name="input/pointcloud" value="$(var input/pointcloud)"/>
       <arg name="output_topic" value="clusters"/>
       <arg name="pointcloud_container_name" value="$(var node/pointcloud_container)"/>
-      <arg name="fusion_camera_ids" value="$(var fusion_camera_ids)"/>
+      <arg name="fusion_camera_ids" value="[0]"/>
     </include>
   </group>
   <!-- Convex Hull conversion from DynamicObjectsWithFeatureArray to DynamicObjects -->

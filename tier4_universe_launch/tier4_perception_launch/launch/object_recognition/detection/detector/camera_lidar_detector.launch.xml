@@ -15,42 +15,10 @@
 
   <!-- External interfaces -->
   <arg name="number_of_cameras"/>
-  <arg name="input/camera0/image"/>
-  <arg name="input/camera0/info"/>
-  <arg name="input/camera0/rois"/>
-  <arg name="input/camera1/image"/>
-  <arg name="input/camera1/info"/>
-  <arg name="input/camera1/rois"/>
-  <arg name="input/camera2/image"/>
-  <arg name="input/camera2/info"/>
-  <arg name="input/camera2/rois"/>
-  <arg name="input/camera3/image"/>
-  <arg name="input/camera3/info"/>
-  <arg name="input/camera3/rois"/>
-  <arg name="input/camera4/image"/>
-  <arg name="input/camera4/info"/>
-  <arg name="input/camera4/rois"/>
-  <arg name="input/camera5/image"/>
-  <arg name="input/camera5/info"/>
-  <arg name="input/camera5/rois"/>
-  <arg name="input/camera6/image"/>
-  <arg name="input/camera6/info"/>
-  <arg name="input/camera6/rois"/>
-  <arg name="input/camera7/image"/>
-  <arg name="input/camera7/info"/>
-  <arg name="input/camera7/rois"/>
-  <arg name="input/camera8/image"/>
-  <arg name="input/camera8/info"/>
-  <arg name="input/camera8/rois"/>
-
-  <arg name="input/concatenation_info"/>
-
-  <arg name="segmentation_pointcloud_fusion_camera_ids"/>
 
   <arg name="node/pointcloud_container"/>
   <arg name="input/pointcloud"/>
   <arg name="input/pointcloud_map/pointcloud"/>
-  <arg name="input/obstacle_segmentation/pointcloud"/>
 
   <arg name="output/ml_detector/objects"/>
   <arg name="output/rule_detector/objects"/>
@@ -61,22 +29,22 @@
   <let name="pointpainting/output/objects" value="$(var output/ml_detector/objects)"/>
 
   <let name="segmentation_based_filtered/input/pointcloud" value="$(var input/pointcloud_map/pointcloud)"/>
-  <let name="segmentation_based_filtered/output/pointcloud" value="$(var ros_namespace)/segmentation_based_filtered/pointcloud"/>
+  <let name="segmentation_based_filtered/output/pointcloud" value="/perception/object_recognition/detection/segmentation_based_filtered/pointcloud"/>
 
   <let name="euclidean_cluster/input/pointcloud" value="$(var segmentation_based_filtered/output/pointcloud)" if="$(var use_image_segmentation_based_filter)"/>
   <let name="euclidean_cluster/input/pointcloud" value="$(var input/pointcloud_map/pointcloud)" unless="$(var use_image_segmentation_based_filter)"/>
-  <let name="euclidean_cluster/output/clusters" value="$(var ros_namespace)/clustering/clusters"/>
+  <let name="euclidean_cluster/output/clusters" value="/perception/object_recognition/detection/clustering/clusters"/>
   <let name="shape_estimation1/input/clusters" value="$(var euclidean_cluster/output/clusters)"/>
   <let name="shape_estimation1/output/objects" value="$(var output/clustering/cluster_objects)"/>
 
   <let name="roi_cluster_fusion/input/clusters" value="$(var euclidean_cluster/output/clusters)"/>
-  <let name="roi_cluster_fusion/output/clusters" value="$(var ros_namespace)/clustering/camera_lidar_fusion/clusters"/>
+  <let name="roi_cluster_fusion/output/clusters" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/clusters"/>
   <let name="low_intensity_cluster_filter/input/clusters" value="$(var roi_cluster_fusion/output/clusters)"/>
-  <let name="low_intensity_cluster_filter/output/clusters" value="$(var ros_namespace)/clustering/camera_lidar_fusion/filtered/clusters"/>
+  <let name="low_intensity_cluster_filter/output/clusters" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/filtered/clusters"/>
 
   <let name="shape_estimation2/input/clusters" value="$(var roi_cluster_fusion/output/clusters)" unless="$(var use_low_intensity_cluster_filter)"/>
   <let name="shape_estimation2/input/clusters" value="$(var low_intensity_cluster_filter/output/clusters)" if="$(var use_low_intensity_cluster_filter)"/>
-  <let name="shape_estimation2/output/objects" value="$(var ros_namespace)/clustering/camera_lidar_fusion/objects_with_feature"/>
+  <let name="shape_estimation2/output/objects" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/objects_with_feature"/>
   <let name="detected_object_feature_remover/input/objects_with_feature" value="$(var shape_estimation2/output/objects)"/>
   <let name="detected_object_feature_remover/output/objects" value="$(var output/rule_detector/objects)"/>
 
@@ -85,14 +53,14 @@
   <include file="$(find-pkg-share autoware_agnocast_wrapper)/launch/agnocast_env.launch.xml"/>
 
   <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detector/camera_2d_detector.launch.xml" if="$(var enable_2d_detection)">
-    <arg name="image_raw0" value="$(var input/camera0/image)"/>
-    <arg name="image_raw1" value="$(var input/camera1/image)"/>
-    <arg name="image_raw2" value="$(var input/camera2/image)"/>
-    <arg name="image_raw3" value="$(var input/camera3/image)"/>
-    <arg name="image_raw4" value="$(var input/camera4/image)"/>
-    <arg name="image_raw5" value="$(var input/camera5/image)"/>
-    <arg name="image_raw6" value="$(var input/camera6/image)"/>
-    <arg name="image_raw7" value="$(var input/camera7/image)"/>
+    <arg name="image_raw0" value="/sensing/camera/camera0/image_raw"/>
+    <arg name="image_raw1" value="/sensing/camera/camera1/image_raw"/>
+    <arg name="image_raw2" value="/sensing/camera/camera2/image_raw"/>
+    <arg name="image_raw3" value="/sensing/camera/camera3/image_raw"/>
+    <arg name="image_raw4" value="/sensing/camera/camera4/image_raw"/>
+    <arg name="image_raw5" value="/sensing/camera/camera5/image_raw"/>
+    <arg name="image_raw6" value="/sensing/camera/camera6/image_raw"/>
+    <arg name="image_raw7" value="/sensing/camera/camera7/image_raw"/>
     <arg name="image_number" value="$(var number_of_cameras)"/>
   </include>
 
@@ -102,35 +70,35 @@
     <push-ros-namespace namespace="pointpainting"/>
     <include file="$(find-pkg-share autoware_image_projection_based_fusion)/launch/pointpainting_fusion.launch.xml">
       <arg name="input/rois_number" value="$(var number_of_cameras)"/>
-      <arg name="input/rois0" value="$(var input/camera0/rois)"/>
-      <arg name="input/rois1" value="$(var input/camera1/rois)"/>
-      <arg name="input/rois2" value="$(var input/camera2/rois)"/>
-      <arg name="input/rois3" value="$(var input/camera3/rois)"/>
-      <arg name="input/rois4" value="$(var input/camera4/rois)"/>
-      <arg name="input/rois5" value="$(var input/camera5/rois)"/>
-      <arg name="input/rois6" value="$(var input/camera6/rois)"/>
-      <arg name="input/rois7" value="$(var input/camera7/rois)"/>
-      <arg name="input/rois8" value="$(var input/camera8/rois)"/>
-      <arg name="input/camera_info0" value="$(var input/camera0/info)"/>
-      <arg name="input/camera_info1" value="$(var input/camera1/info)"/>
-      <arg name="input/camera_info2" value="$(var input/camera2/info)"/>
-      <arg name="input/camera_info3" value="$(var input/camera3/info)"/>
-      <arg name="input/camera_info4" value="$(var input/camera4/info)"/>
-      <arg name="input/camera_info5" value="$(var input/camera5/info)"/>
-      <arg name="input/camera_info6" value="$(var input/camera6/info)"/>
-      <arg name="input/camera_info7" value="$(var input/camera7/info)"/>
-      <arg name="input/camera_info8" value="$(var input/camera8/info)"/>
-      <arg name="input/image0" value="$(var input/camera0/image)"/>
-      <arg name="input/image1" value="$(var input/camera1/image)"/>
-      <arg name="input/image2" value="$(var input/camera2/image)"/>
-      <arg name="input/image3" value="$(var input/camera3/image)"/>
-      <arg name="input/image4" value="$(var input/camera4/image)"/>
-      <arg name="input/image5" value="$(var input/camera5/image)"/>
-      <arg name="input/image6" value="$(var input/camera6/image)"/>
-      <arg name="input/image7" value="$(var input/camera7/image)"/>
-      <arg name="input/image8" value="$(var input/camera8/image)"/>
+      <arg name="input/rois0" value="/perception/object_recognition/detection/rois0"/>
+      <arg name="input/rois1" value="/perception/object_recognition/detection/rois1"/>
+      <arg name="input/rois2" value="/perception/object_recognition/detection/rois2"/>
+      <arg name="input/rois3" value="/perception/object_recognition/detection/rois3"/>
+      <arg name="input/rois4" value="/perception/object_recognition/detection/rois4"/>
+      <arg name="input/rois5" value="/perception/object_recognition/detection/rois5"/>
+      <arg name="input/rois6" value="/perception/object_recognition/detection/rois6"/>
+      <arg name="input/rois7" value="/perception/object_recognition/detection/rois7"/>
+      <arg name="input/rois8" value="/perception/object_recognition/detection/rois8"/>
+      <arg name="input/camera_info0" value="/sensing/camera/camera0/camera_info"/>
+      <arg name="input/camera_info1" value="/sensing/camera/camera1/camera_info"/>
+      <arg name="input/camera_info2" value="/sensing/camera/camera2/camera_info"/>
+      <arg name="input/camera_info3" value="/sensing/camera/camera3/camera_info"/>
+      <arg name="input/camera_info4" value="/sensing/camera/camera4/camera_info"/>
+      <arg name="input/camera_info5" value="/sensing/camera/camera5/camera_info"/>
+      <arg name="input/camera_info6" value="/sensing/camera/camera6/camera_info"/>
+      <arg name="input/camera_info7" value="/sensing/camera/camera7/camera_info"/>
+      <arg name="input/camera_info8" value="/sensing/camera/camera8/camera_info"/>
+      <arg name="input/image0" value="/sensing/camera/camera0/image_raw"/>
+      <arg name="input/image1" value="/sensing/camera/camera1/image_raw"/>
+      <arg name="input/image2" value="/sensing/camera/camera2/image_raw"/>
+      <arg name="input/image3" value="/sensing/camera/camera3/image_raw"/>
+      <arg name="input/image4" value="/sensing/camera/camera4/image_raw"/>
+      <arg name="input/image5" value="/sensing/camera/camera5/image_raw"/>
+      <arg name="input/image6" value="/sensing/camera/camera6/image_raw"/>
+      <arg name="input/image7" value="/sensing/camera/camera7/image_raw"/>
+      <arg name="input/image8" value="/sensing/camera/camera8/image_raw"/>
       <arg name="input/pointcloud" value="$(var pointpainting/input/pointcloud)"/>
-      <arg name="input/concatenation_info" value="$(var input/concatenation_info)"/>
+      <arg name="input/concatenation_info" value="/sensing/lidar/concatenated/pointcloud_info"/>
       <arg name="output/objects" value="$(var pointpainting/output/objects)"/>
 
       <arg name="model_name" value="$(var lidar_detection_model_name)"/>
@@ -147,10 +115,10 @@
   <!-- Image_segmentation based filter, apply for camera0 only-->
   <group>
     <include file="$(find-pkg-share autoware_image_projection_based_fusion)/launch/segmentation_pointcloud_fusion.launch.py" if="$(var use_image_segmentation_based_filter)">
-      <arg name="input/concatenation_info" value="$(var input/concatenation_info)"/>
+      <arg name="input/concatenation_info" value="/sensing/lidar/concatenated/pointcloud_info"/>
       <arg name="input/pointcloud" value="$(var segmentation_based_filtered/input/pointcloud)"/>
       <arg name="output/pointcloud" value="$(var segmentation_based_filtered/output/pointcloud)"/>
-      <arg name="fusion_camera_ids" value="$(var segmentation_pointcloud_fusion_camera_ids)"/>
+      <arg name="fusion_camera_ids" value="$[0,2,4]"/>
       <arg name="sync_param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/image_projection_based_fusion/fusion_common.param.yaml"/>
     </include>
   </group>
@@ -188,34 +156,34 @@
       <group>
         <include file="$(find-pkg-share autoware_image_projection_based_fusion)/launch/roi_cluster_fusion.launch.xml">
           <arg name="input/rois_number" value="$(var number_of_cameras)"/>
-          <arg name="input/rois0" value="$(var input/camera0/rois)"/>
-          <arg name="input/rois1" value="$(var input/camera1/rois)"/>
-          <arg name="input/rois2" value="$(var input/camera2/rois)"/>
-          <arg name="input/rois3" value="$(var input/camera3/rois)"/>
-          <arg name="input/rois4" value="$(var input/camera4/rois)"/>
-          <arg name="input/rois5" value="$(var input/camera5/rois)"/>
-          <arg name="input/rois6" value="$(var input/camera6/rois)"/>
-          <arg name="input/rois7" value="$(var input/camera7/rois)"/>
-          <arg name="input/rois8" value="$(var input/camera8/rois)"/>
-          <arg name="input/camera_info0" value="$(var input/camera0/info)"/>
-          <arg name="input/camera_info1" value="$(var input/camera1/info)"/>
-          <arg name="input/camera_info2" value="$(var input/camera2/info)"/>
-          <arg name="input/camera_info3" value="$(var input/camera3/info)"/>
-          <arg name="input/camera_info4" value="$(var input/camera4/info)"/>
-          <arg name="input/camera_info5" value="$(var input/camera5/info)"/>
-          <arg name="input/camera_info6" value="$(var input/camera6/info)"/>
-          <arg name="input/camera_info7" value="$(var input/camera7/info)"/>
-          <arg name="input/camera_info8" value="$(var input/camera8/info)"/>
-          <arg name="input/image0" value="$(var input/camera0/image)"/>
-          <arg name="input/image1" value="$(var input/camera1/image)"/>
-          <arg name="input/image2" value="$(var input/camera2/image)"/>
-          <arg name="input/image3" value="$(var input/camera3/image)"/>
-          <arg name="input/image4" value="$(var input/camera4/image)"/>
-          <arg name="input/image5" value="$(var input/camera5/image)"/>
-          <arg name="input/image6" value="$(var input/camera6/image)"/>
-          <arg name="input/image7" value="$(var input/camera7/image)"/>
-          <arg name="input/image8" value="$(var input/camera8/image)"/>
-          <arg name="input/concatenation_info" value="$(var input/concatenation_info)"/>
+          <arg name="input/rois0" value="/perception/object_recognition/detection/rois0"/>
+          <arg name="input/rois1" value="/perception/object_recognition/detection/rois1"/>
+          <arg name="input/rois2" value="/perception/object_recognition/detection/rois2"/>
+          <arg name="input/rois3" value="/perception/object_recognition/detection/rois3"/>
+          <arg name="input/rois4" value="/perception/object_recognition/detection/rois4"/>
+          <arg name="input/rois5" value="/perception/object_recognition/detection/rois5"/>
+          <arg name="input/rois6" value="/perception/object_recognition/detection/rois6"/>
+          <arg name="input/rois7" value="/perception/object_recognition/detection/rois7"/>
+          <arg name="input/rois8" value="/perception/object_recognition/detection/rois8"/>
+          <arg name="input/camera_info0" value="/sensing/camera/camera0/camera_info"/>
+          <arg name="input/camera_info1" value="/sensing/camera/camera1/camera_info"/>
+          <arg name="input/camera_info2" value="/sensing/camera/camera2/camera_info"/>
+          <arg name="input/camera_info3" value="/sensing/camera/camera3/camera_info"/>
+          <arg name="input/camera_info4" value="/sensing/camera/camera4/camera_info"/>
+          <arg name="input/camera_info5" value="/sensing/camera/camera5/camera_info"/>
+          <arg name="input/camera_info6" value="/sensing/camera/camera6/camera_info"/>
+          <arg name="input/camera_info7" value="/sensing/camera/camera7/camera_info"/>
+          <arg name="input/camera_info8" value="/sensing/camera/camera8/camera_info"/>
+          <arg name="input/image0" value="/sensing/camera/camera0/image_raw"/>
+          <arg name="input/image1" value="/sensing/camera/camera1/image_raw"/>
+          <arg name="input/image2" value="/sensing/camera/camera2/image_raw"/>
+          <arg name="input/image3" value="/sensing/camera/camera3/image_raw"/>
+          <arg name="input/image4" value="/sensing/camera/camera4/image_raw"/>
+          <arg name="input/image5" value="/sensing/camera/camera5/image_raw"/>
+          <arg name="input/image6" value="/sensing/camera/camera6/image_raw"/>
+          <arg name="input/image7" value="/sensing/camera/camera7/image_raw"/>
+          <arg name="input/image8" value="/sensing/camera/camera8/image_raw"/>
+          <arg name="input/concatenation_info" value="/sensing/lidar/concatenated/pointcloud_info"/>
           <arg name="input/clusters" value="$(var roi_cluster_fusion/input/clusters)"/>
           <arg name="output/clusters" value="$(var roi_cluster_fusion/output/clusters)"/>
           <arg name="param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/image_projection_based_fusion/roi_cluster_fusion.param.yaml"/>

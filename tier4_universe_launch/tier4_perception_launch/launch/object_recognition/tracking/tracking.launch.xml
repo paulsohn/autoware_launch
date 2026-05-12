@@ -1,5 +1,7 @@
 <?xml version="1.0"?>
 <launch>
+  <push-ros-namespace namespace="tracking"/>
+
   <!-- Pipeline junctions -->
   <arg name="mode" default="lidar">
     <choice value="camera"/>
@@ -19,41 +21,20 @@
 
   <!-- External interface -->
   <arg name="lidar_detection_model_type" default="centerpoint"/>
-  <arg name="input/merged_detection/channel" default="detected_objects"/>
-  <arg name="input/merged_detection/objects" default="/perception/object_recognition/detection/objects"/>
-  <arg name="input/lidar_dnn/channel" default="lidar_$(var lidar_detection_model_type)"/>
-  <arg name="input/lidar_dnn/objects" default="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects"/>
-  <arg name="input/lidar_dnn_validated/objects" default="/perception/object_recognition/detection/$(var lidar_detection_model_type)/validation/objects"/>
-  <arg name="input/lidar_dnn_short_range/channel" default="lidar_centerpoint_short_range"/>
-  <arg name="input/lidar_dnn_short_range/objects" default="/perception/object_recognition/detection/centerpoint_short_range/objects"/>
-  <arg name="input/camera_lidar_rule_detector/channel" default="camera_lidar_fusion"/>
-  <arg name="input/camera_lidar_rule_detector/objects" default="/perception/object_recognition/detection/clustering/camera_lidar_fusion/objects"/>
-  <arg name="input/irregular_object_detector/channel" default="camera_lidar_fusion_irregular"/>
-  <arg name="input/irregular_object_detector/objects" default="/perception/object_recognition/detection/irregular_object/objects"/>
-  <arg name="input/tracker_based_detector/channel" default="detection_by_tracker"/>
-  <arg name="input/tracker_based_detector/objects" default="/perception/object_recognition/detection/detection_by_tracker/objects"/>
-  <arg name="input/radar/channel" default="radar"/>
-  <arg name="input/radar/far_objects" default="/perception/object_recognition/detection/radar/far_objects"/>
-  <arg name="input/radar/objects" default="/perception/object_recognition/detection/radar/objects"/>
-  <arg name="input/radar/tracked_objects" default="/sensing/radar/tracked_objects"/>
-  <arg name="input/camera_only/objects" default="/perception/object_recognition/detection/camera_only/objects"/>
-  <arg name="input/camera_only/channel" default="camera_streampetr"/>
-  <arg name="input/camera_vru/channel" default="camera_vru"/>
-  <arg name="input/camera_vru/objects" default="/perception/object_recognition/detection/camera_vru/objects"/>
 
-  <arg name="output/objects" default="$(var ros_namespace)/objects"/>
-  <arg name="output/merged_objects" default="$(var ros_namespace)/merged_objects"/>
+  <arg name="output/objects" default="/perception/object_recognition/tracking/objects"/>
+  <arg name="output/merged_objects" default="/perception/object_recognition/tracking/merged_objects"/>
 
   <group unless="$(var use_multi_channel_tracker_merger)">
     <!-- Internal interface -->
-    <let name="radar_tracked_object_sorter/input/objects" value="$(var input/radar/tracked_objects)"/>
-    <let name="radar_tracked_object_sorter/output/objects" value="$(var ros_namespace)/radar/sorted_tracked_objects"/>
+    <let name="radar_tracked_object_sorter/input/objects" value="/sensing/radar/tracked_objects"/>
+    <let name="radar_tracked_object_sorter/output/objects" value="/perception/object_recognition/tracking/radar/sorted_tracked_objects"/>
 
     <let name="radar_tracked_object_lanelet_filter/input/object" value="$(var radar_tracked_object_sorter/output/objects)"/>
-    <let name="radar_tracked_object_lanelet_filter/output/object" value="$(var ros_namespace)/radar/tracked_objects"/>
+    <let name="radar_tracked_object_lanelet_filter/output/object" value="/perception/object_recognition/tracking/radar/tracked_objects"/>
 
     <let name="multi_object_tracker/output/objects" value="$(var output/objects)" unless="$(var use_radar_tracking_fusion)"/>
-    <let name="multi_object_tracker/output/objects" value="$(var ros_namespace)/near_objects" if="$(var use_radar_tracking_fusion)"/>
+    <let name="multi_object_tracker/output/objects" value="/perception/object_recognition/tracking/near_objects" if="$(var use_radar_tracking_fusion)"/>
 
     <let name="tracker_merger/input/main_objects" value="$(var multi_object_tracker/output/objects)"/>
     <let name="tracker_merger/input/sub_objects" value="$(var radar_tracked_object_lanelet_filter/output/object)"/>
@@ -61,8 +42,8 @@
 
     <!-- Multi object tracking -->
     <include file="$(find-pkg-share autoware_multi_object_tracker)/launch/multi_object_tracker.launch.xml">
-      <arg name="input/detection01/objects" value="$(var input/merged_detection/objects)"/>
-      <arg name="input/detection01/channel" value="$(var input/merged_detection/channel)"/>
+      <arg name="input/detection01/objects" value="detected_objects"/>
+      <arg name="input/detection01/channel" value="/perception/object_recognition/detection/objects"/>
       <arg name="output/objects" value="$(var multi_object_tracker/output/objects)"/>
       <arg name="data_association_matrix_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/tracking/multi_object_tracker/data_association_matrix.param.yaml"/>
       <arg name="input_channels_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/tracking/multi_object_tracker/input_channels.param.yaml"/>
@@ -101,33 +82,33 @@
 
   <!-- Object list for multi-channel tracker merger -->
   <group if="$(var use_multi_channel_tracker_merger)">
-    <let name="input/detection01/channel" value="$(var input/lidar_dnn/channel)"/>
-    <let name="input/detection01/objects" value="$(var input/lidar_dnn_validated/objects)" if="$(var use_validator)"/>
-    <let name="input/detection01/objects" value="$(var input/lidar_dnn/objects)" unless="$(var use_validator)"/>
+    <let name="input/detection01/channel" value="lidar_$(var lidar_detection_model_type)"/>
+    <let name="input/detection01/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/validation/objects" if="$(var use_validator)"/>
+    <let name="input/detection01/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects" unless="$(var use_validator)"/>
 
-    <let name="input/detection02/channel" value="$(var input/lidar_dnn_short_range/channel)" if="$(var use_short_range_detection)"/>
+    <let name="input/detection02/channel" value="lidar_centerpoint_short_range" if="$(var use_short_range_detection)"/>
     <let name="input/detection02/channel" value="none" unless="$(var use_short_range_detection)"/>
-    <let name="input/detection02/objects" value="$(var input/lidar_dnn_short_range/objects)"/>
+    <let name="input/detection02/objects" value="/perception/object_recognition/detection/centerpoint_short_range/objects"/>
 
-    <let name="input/detection03/channel" value="$(var input/camera_lidar_rule_detector/channel)"/>
-    <let name="input/detection03/objects" value="$(var input/camera_lidar_rule_detector/objects)"/>
+    <let name="input/detection03/channel" value="camera_lidar_fusion"/>
+    <let name="input/detection03/objects" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/objects"/>
 
-    <let name="input/detection04/channel" value="$(var input/irregular_object_detector/channel)"/>
-    <let name="input/detection04/objects" value="$(var input/irregular_object_detector/objects)"/>
+    <let name="input/detection04/channel" value="irregular_object_detector"/>
+    <let name="input/detection04/objects" value="/perception/object_recognition/detection/irregular_object/objects"/>
 
-    <let name="input/detection05/channel" value="$(var input/tracker_based_detector/channel)"/>
+    <let name="input/detection05/channel" value="detection_by_tracker"/>
     <let name="input/detection05/channel" value="none" unless="$(var use_detection_by_tracker)"/>
-    <let name="input/detection05/objects" value="$(var input/tracker_based_detector/objects)"/>
+    <let name="input/detection05/objects" value="/perception/object_recognition/detection/detection_by_tracker/objects"/>
 
-    <let name="input/detection06/channel" value="$(var input/radar/channel)"/>
-    <let name="input/detection06/objects" value="$(var input/radar/far_objects)"/>
+    <let name="input/detection06/channel" value="radar"/>
+    <let name="input/detection06/objects" value="/perception/object_recognition/detection/radar/far_objects"/>
 
-    <let name="input/detection07/channel" value="$(var input/camera_vru/channel)"/>
+    <let name="input/detection07/channel" value="camera_vru" if="$(var use_camera_vru_detector)"/>
     <let name="input/detection07/channel" value="none" unless="$(var use_camera_vru_detector)"/>
-    <let name="input/detection07/objects" value="$(var input/camera_vru/objects)"/>
+    <let name="input/detection07/objects" value="/perception/object_recognition/detection/camera_vru/objects"/>
 
-    <let name="input/detection08/channel" value="$(var input/camera_only/channel)"/>
-    <let name="input/detection08/objects" value="$(var input/camera_only/objects)"/>
+    <let name="input/detection08/channel" value="camera_streampetr"/>
+    <let name="input/detection08/objects" value="/perception/object_recognition/detection/camera_only/objects"/>
 
     <!-- camera lidar -->
     <group scoped="false" if="$(eval '&quot;$(var mode)&quot;==&quot;camera_lidar_fusion&quot;')">
@@ -159,20 +140,7 @@
 
     <!-- Multi object tracking -->
     <include file="$(find-pkg-share autoware_multi_object_tracker)/launch/multi_object_tracker.launch.xml">
-      <arg name="input/detection01/objects" value="$(var input/detection01/objects)"/>
-      <arg name="input/detection01/channel" value="$(var input/detection01/channel)"/>
-      <arg name="input/detection02/objects" value="$(var input/detection02/objects)"/>
-      <arg name="input/detection02/channel" value="$(var input/detection02/channel)"/>
-      <arg name="input/detection03/objects" value="$(var input/detection03/objects)"/>
-      <arg name="input/detection03/channel" value="$(var input/detection03/channel)"/>
-      <arg name="input/detection04/objects" value="$(var input/detection04/objects)"/>
-      <arg name="input/detection04/channel" value="$(var input/detection04/channel)"/>
-      <arg name="input/detection05/objects" value="$(var input/detection05/objects)"/>
-      <arg name="input/detection05/channel" value="$(var input/detection05/channel)"/>
-      <arg name="input/detection06/objects" value="$(var input/detection06/objects)"/>
-      <arg name="input/detection06/channel" value="$(var input/detection06/channel)"/>
-      <arg name="input/detection07/objects" value="$(var input/detection07/objects)"/>
-      <arg name="input/detection07/channel" value="$(var input/detection07/channel)"/>
+      <!-- input/detectionNN/objects and input/detectionNN/channel implicitly passed -->
       <arg name="output/objects" value="$(var output/objects)"/>
       <arg name="output/merged_objects" value="$(var output/merged_objects)"/>
       <arg name="data_association_matrix_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/tracking/multi_object_tracker/data_association_matrix.param.yaml"/>
