@@ -26,12 +26,9 @@ import yaml
 
 
 def create_traffic_light_occlusion_predictor(namespace):
-    package = FindPackageShare("autoware_traffic_light_occlusion_predictor")
-    include = PathJoinSubstitution([package, "launch/traffic_light_occlusion_predictor.launch.xml"])
-
     arguments = {
-        "input/cloud": LaunchConfiguration("input/cloud"),
-        "input/vector_map": LaunchConfiguration("input/vector_map"),
+        "input/cloud": "/sensing/lidar/top/pointcloud_raw_ex",
+        "input/vector_map": "/map/vector_map",
         "input/camera_info": f"/sensing/camera/{namespace}/camera_info",
         "input/rois": f"/perception/traffic_light_recognition/{namespace}/detection/rois",
         "input/car/traffic_signals": "car/traffic_signals",
@@ -39,19 +36,24 @@ def create_traffic_light_occlusion_predictor(namespace):
         "output/traffic_signals": f"/perception/traffic_light_recognition/{namespace}/classification/traffic_signals",
         "param_path": [
             FindPackageShare("autoware_launch_config"),
-            "/config/perception/traffic_light_recognition/traffic_light_occlusion_predictor/traffic_light_occlusion_predictor.param.yaml"
+            "/config/perception/traffic_light_recognition/traffic_light_occlusion_predictor/traffic_light_occlusion_predictor.param.yaml",
         ],
     }.items()
 
-    group = GroupAction(
+    return GroupAction(
         [
-            PushRosNamespace(namespace),
-            PushRosNamespace("classification"),
-            IncludeLaunchDescription(include, launch_arguments=arguments),
+            PushRosNamespace(f"{namespace}/classification"),
+            IncludeLaunchDescription(
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare("autoware_traffic_light_occlusion_predictor"),
+                        "launch/traffic_light_occlusion_predictor.launch.xml",
+                    ]
+                ),
+                launch_arguments=arguments,
+            ),
         ]
     )
-
-    return group
 
 
 def launch_setup(context, *args, **kwargs):
@@ -77,21 +79,9 @@ def launch_setup(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    launch_arguments = []
-
-    def add_launch_arg(name: str, default_value=None, description=None):
-        # a default_value of None is equivalent to not passing that kwarg at all
-        launch_arguments.append(
-            DeclareLaunchArgument(name, default_value=default_value, description=description)
-        )
-
-    add_launch_arg("camera_namespaces")
-    add_launch_arg("input/cloud")
-    add_launch_arg("input/vector_map")
-
     return launch.LaunchDescription(
         [
-            *launch_arguments,
+            DeclareLaunchArgument("camera_namespaces"),
             OpaqueFunction(function=launch_setup),
         ]
     )
