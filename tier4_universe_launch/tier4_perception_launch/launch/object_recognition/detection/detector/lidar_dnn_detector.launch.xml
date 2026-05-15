@@ -11,45 +11,15 @@
   </arg>
   <arg name="lidar_detection_model_name" description="options: `bevfusion_lidar`, `centerpoint`, `centerpoint_tiny`, `centerpoint_sigma`, `pointpainting`, `transfusion` (non-exhaustive)"/>
 
-  <!-- short_range Lidar detector parameters -->
-  <arg name="use_short_range_detection" default="false" description="use short range detection for redundant VRU detection"/>
-
-  <!-- External interfaces -->
-  <arg name="input/pointcloud"/>
-  <let name="output/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects"/>
-
-  <!-- short_range detection -->
-  <group if="$(var use_short_range_detection)">
-    <!-- short_range CenterPoint -->
-    <push-ros-namespace namespace="short_range_centerpoint"/>
-    <group>
-      <include file="$(find-pkg-share autoware_lidar_centerpoint)/launch/lidar_centerpoint.launch.xml">
-        <arg name="input/pointcloud" value="$(var input/pointcloud)"/>
-        <arg name="output/objects" value="/perception/object_recognition/detection/centerpoint_short_range/objects"/>
-        <arg name="node_name" value="lidar_short_range_centerpoint"/>
-        <arg name="model_name" value="centerpoint_short_range"/>
-        <arg name="model_path" value="$(var data_path)/lidar_short_range_centerpoint"/>
-        <arg name="model_param_path" value="$(find-pkg-share autoware_lidar_centerpoint)/config/centerpoint_short_range.param.yaml"/>
-        <arg name="ml_package_param_path" value="$(var data_path)/lidar_short_range_centerpoint/centerpoint_short_range_ml_package.param.yaml"/>
-        <arg name="class_remapper_param_path" value="$(var data_path)/lidar_short_range_centerpoint/detection_class_remapper.param.yaml"/>
-        <arg name="common_param_path" value="$(find-pkg-share autoware_lidar_centerpoint)/config/centerpoint_common.param.yaml"/>
-
-        <arg name="use_pointcloud_container" value="true"/>
-        <arg name="pointcloud_container_name" value="/pointcloud_container"/>
-      </include>
-    </group>
-  </group>
-
   <let name="lidar_model_param_dir" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/lidar_model"/>
 
   <!-- BEVFusion -->
   <group if="$(eval &quot;'$(var lidar_detection_model_type)'=='bevfusion'&quot;)">
-    <let name="lidar_detection_model_name" value="$(eval &quot;'bevfusion_lidar' if ''=='$(var lidar_detection_model_name)' else '$(var lidar_detection_model_name)'&quot;)"/>
     <push-ros-namespace namespace="bevfusion"/>
     <group>
       <include file="$(find-pkg-share autoware_bevfusion)/launch/bevfusion.launch.xml">
-        <arg name="input/pointcloud" value="$(var input/pointcloud)"/>
-        <arg name="output/objects" value="$(var output/objects)"/>
+        <arg name="input/pointcloud" value="/sensing/lidar/concatenated/pointcloud"/>
+        <arg name="output/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects"/>
         <arg name="model_name" value="$(var lidar_detection_model_name)"/>
         <arg name="model_path" value="$(var data_path)/bevfusion"/>
         <arg name="model_param_path" value="$(var lidar_model_param_dir)/$(var lidar_detection_model_name).param.yaml"/>
@@ -65,12 +35,11 @@
 
   <!-- TransFusion -->
   <group if="$(eval &quot;'$(var lidar_detection_model_type)'=='transfusion'&quot;)">
-    <let name="lidar_detection_model_name" value="$(eval &quot;'transfusion' if ''=='$(var lidar_detection_model_name)' else '$(var lidar_detection_model_name)'&quot;)"/>
     <push-ros-namespace namespace="transfusion"/>
     <group>
       <include file="$(find-pkg-share autoware_lidar_transfusion)/launch/lidar_transfusion.launch.xml">
-        <arg name="input/pointcloud" value="$(var input/pointcloud)"/>
-        <arg name="output/objects" value="$(var output/objects)"/>
+        <arg name="input/pointcloud" value="/sensing/lidar/concatenated/pointcloud"/>
+        <arg name="output/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects"/>
         <arg name="model_name" value="$(var lidar_detection_model_name)"/>
         <arg name="model_path" value="$(var data_path)/lidar_transfusion"/>
         <arg name="model_param_path" value="$(var lidar_model_param_dir)/$(var lidar_detection_model_name).param.yaml"/>
@@ -86,12 +55,11 @@
 
   <!-- CenterPoint -->
   <group if="$(eval &quot;'$(var lidar_detection_model_type)'=='centerpoint'&quot;)">
-    <let name="lidar_detection_model_name" value="$(eval &quot;'centerpoint_tiny' if ''=='$(var lidar_detection_model_name)' else '$(var lidar_detection_model_name)'&quot;)"/>
     <push-ros-namespace namespace="centerpoint"/>
     <group>
       <include file="$(find-pkg-share autoware_lidar_centerpoint)/launch/lidar_centerpoint.launch.xml">
-        <arg name="input/pointcloud" value="$(var input/pointcloud)"/>
-        <arg name="output/objects" value="$(var output/objects)"/>
+        <arg name="input/pointcloud" value="/sensing/lidar/concatenated/pointcloud"/>
+        <arg name="output/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects"/>
         <arg name="node_name" value="lidar_centerpoint"/>
         <arg name="model_name" value="$(var lidar_detection_model_name)"/>
         <arg name="model_path" value="$(var data_path)/lidar_centerpoint"/>
@@ -111,7 +79,7 @@
     <push-ros-namespace namespace="apollo"/>
     <group>
       <include file="$(find-pkg-share autoware_lidar_apollo_instance_segmentation)/launch/lidar_apollo_instance_segmentation.launch.xml">
-        <arg name="input/pointcloud" value="$(var input/pointcloud)"/>
+        <arg name="input/pointcloud" value="/sensing/lidar/concatenated/pointcloud"/>
         <arg name="output/objects" value="labeled_clusters"/>
       </include>
     </group>
@@ -129,7 +97,7 @@
     <group>
       <include file="$(find-pkg-share autoware_detected_object_feature_remover)/launch/detected_object_feature_remover.launch.xml">
         <arg name="input" value="objects_with_feature"/>
-        <arg name="output" value="$(var output/objects)"/>
+        <arg name="output" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects"/>
       </include>
     </group>
   </group>

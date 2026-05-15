@@ -16,8 +16,6 @@
       <arg name="input/rois3" value="/perception/object_recognition/detection/rois3"/>
       <arg name="input/rois4" value="/perception/object_recognition/detection/rois4"/>
       <arg name="input/rois5" value="/perception/object_recognition/detection/rois5"/>
-      <arg name="input/rois6" value="/perception/object_recognition/detection/rois6"/>
-      <arg name="input/rois7" value="/perception/object_recognition/detection/rois7"/>
 
       <arg name="input/camera_info0" value="/sensing/camera/camera0/camera_info"/>
       <arg name="input/camera_info1" value="/sensing/camera/camera1/camera_info"/>
@@ -25,8 +23,6 @@
       <arg name="input/camera_info3" value="/sensing/camera/camera3/camera_info"/>
       <arg name="input/camera_info4" value="/sensing/camera/camera4/camera_info"/>
       <arg name="input/camera_info5" value="/sensing/camera/camera5/camera_info"/>
-      <arg name="input/camera_info6" value="/sensing/camera/camera6/camera_info"/>
-      <arg name="input/camera_info7" value="/sensing/camera/camera7/camera_info"/>
 
       <arg name="output/rois0/objects" value="roi_detector_objects0"/>
       <arg name="output/rois1/objects" value="roi_detector_objects1"/>
@@ -34,8 +30,6 @@
       <arg name="output/rois3/objects" value="roi_detector_objects3"/>
       <arg name="output/rois4/objects" value="roi_detector_objects4"/>
       <arg name="output/rois5/objects" value="roi_detector_objects5"/>
-      <arg name="output/rois6/objects" value="roi_detector_objects6"/>
-      <arg name="output/rois7/objects" value="roi_detector_objects7"/>
 
       <arg name="param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/camera_vru_detection/near_range_camera_vru_detector.param.yaml"/>
     </include>

@@ -9,7 +9,7 @@
       <include file="$(find-pkg-share autoware_euclidean_cluster)/launch/voxel_grid_based_euclidean_cluster.launch.xml">
         <arg name="input_pointcloud" value="/perception/object_recognition/detection/pointcloud_map_filtered/pointcloud"/>
         <arg name="output_clusters" value="/perception/object_recognition/detection/clustering/clusters"/>
-        <arg name="use_low_height_cropbox" value="$(var use_low_height_cropbox)"/>
+        <arg name="use_low_height_cropbox" value="false"/>
         <arg name="use_pointcloud_container" value="true"/>
         <arg name="pointcloud_container_name" value="/pointcloud_container"/>
         <arg

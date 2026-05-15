@@ -1,13 +1,12 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="use_vector_map" default="false" description="use vector map in prediction"/>
   <arg name="prediction_model_type" default="map_based" description="prediction model type">
     <choice value="map_based"/>
     <choice value="simpl"/>
   </arg>
   <arg name="input/objects" default="/perception/object_recognition/tracking/objects"/>
 
-  <group if="$(var use_vector_map)">
+  <group>
     <set_remap from="objects" to="/perception/object_recognition/objects"/>
     <!-- map-based -->
     <group if="$(eval &quot; '$(var prediction_model_type)' == 'map_based'&quot;)">
@@ -24,8 +23,5 @@
         <arg name="output/objects" value="/perception/object_recognition/objects"/>
       </include>
     </group>
-  </group>
-  <group unless="$(var use_vector_map)">
-    <!-- Not support without vector map -->
   </group>
 </launch>

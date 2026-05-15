@@ -113,8 +113,8 @@ class SmallUnknownPipeline:
                 ],
                 parameters=[
                     {
-                        "input_frame": LaunchConfiguration("base_frame"),
-                        "output_frame": LaunchConfiguration("base_frame"),
+                        "input_frame": "base_link",
+                        "output_frame": "base_link",
                     },
                     ParameterFile(
                         param_file=PathJoinSubstitution(
@@ -197,13 +197,14 @@ def launch_setup(context):
     pipeline = SmallUnknownPipeline(context)
     loader = LoadComposableNodes(
         composable_node_descriptions=pipeline.create_irregular_object_pipeline(
-            LaunchConfiguration("input/pointcloud"),
+            "/sensing/lidar/concatenated/pointcloud",
             obstacle_pointcloud_topic,
         ),
         target_container="/pointcloud_container",
     )
     roi_pointcloud_fusion_node = pipeline.create_roi_pointcloud_fusion_node(
-        obstacle_pointcloud_topic, LaunchConfiguration("output_topic")
+        obstacle_pointcloud_topic,
+        "/perception/object_recognition/detection/irregular_object/clusters",
     )
     return [loader, roi_pointcloud_fusion_node]
 
@@ -214,11 +215,6 @@ def generate_launch_description():
     def add_launch_arg(name: str, default_value=None):
         launch_arguments.append(DeclareLaunchArgument(name, default_value=default_value))
 
-    add_launch_arg("input/pointcloud", "/sensing/lidar/concatenated/pointcloud")
-    add_launch_arg(
-        "output_topic", "/perception/object_recognition/detection/irregular_object/clusters"
-    )
-    add_launch_arg("base_frame", "base_link")
     add_launch_arg("use_intra_process", "True")
     add_launch_arg("use_multithread", "True")
     add_launch_arg("fusion_camera_ids", "[3,5]")

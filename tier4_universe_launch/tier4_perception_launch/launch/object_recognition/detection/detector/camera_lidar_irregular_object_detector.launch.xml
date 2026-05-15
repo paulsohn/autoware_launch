@@ -1,20 +1,16 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="input/pointcloud"/>
-
   <!-- small unknown object detector -->
   <group>
     <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detector/camera_lidar_irregular_object_detector.launch.py">
-      <arg name="input/pointcloud" value="$(var input/pointcloud)"/>
-      <arg name="output_topic" value="clusters"/>
       <arg name="fusion_camera_ids" value="[0]"/>
     </include>
   </group>
   <!-- Convex Hull conversion from DynamicObjectsWithFeatureArray to DynamicObjects -->
   <node pkg="autoware_detected_object_feature_remover" exec="detected_object_feature_remover_node" name="detected_object_feature_remover" output="screen">
     <env name="LD_PRELOAD" value="$(var ld_preload_value)"/>
-    <remap from="~/input" to="clusters"/>
-    <remap from="~/output" to="objects"/>
+    <remap from="~/input" to="/perception/object_recognition/detection/irregular_object/clusters"/>
+    <remap from="~/output" to="/perception/object_recognition/detection/irregular_object/objects"/>
     <param name="run_convex_hull_conversion" value="true"/>
   </node>
 </launch>
