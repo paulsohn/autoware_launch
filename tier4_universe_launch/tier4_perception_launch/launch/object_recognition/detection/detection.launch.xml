@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <!-- Pipeline junctions -->
-  <arg name="mode">
+  <arg name="perception_mode">
     <choice value="camera"/>
     <choice value="camera_lidar_radar_fusion"/>
     <choice value="camera_lidar_fusion"/>
@@ -39,7 +39,7 @@
   <let name="switch/merger/lidar_radar" value="false"/>
   <let name="switch/merger/lidar" value="false"/>
 
-  <group scoped="false" if="$(eval '&quot;$(var mode)&quot;==&quot;camera_lidar_radar_fusion&quot;')">
+  <group scoped="false" if="$(eval '&quot;$(var perception_mode)&quot;==&quot;camera_lidar_radar_fusion&quot;')">
     <let name="switch/filter/pointcloud" value="true"/>
     <let name="switch/detector/camera_lidar" value="true"/>
     <let name="switch/detector/lidar_dnn" value="true"/>
@@ -50,7 +50,7 @@
     <let name="camera_lidar_rule_detector/output/objects" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/unfiltered/objects"/>
     <let name="camera_lidar_object_filter/output/objects" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/objects"/>
   </group>
-  <group scoped="false" if="$(eval '&quot;$(var mode)&quot;==&quot;camera_lidar_fusion&quot;')">
+  <group scoped="false" if="$(eval '&quot;$(var perception_mode)&quot;==&quot;camera_lidar_fusion&quot;')">
     <let name="switch/filter/pointcloud" value="true"/>
     <let name="switch/detector/camera_lidar" value="true"/>
     <let name="switch/detector/lidar_dnn" value="true"/>
@@ -58,7 +58,7 @@
     <let name="camera_lidar_rule_detector/output/objects" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/unfiltered/objects"/>
     <let name="camera_lidar_object_filter/output/objects" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/objects"/>
   </group>
-  <group scoped="false" if="$(eval '&quot;$(var mode)&quot;==&quot;lidar_radar_fusion&quot;')">
+  <group scoped="false" if="$(eval '&quot;$(var perception_mode)&quot;==&quot;lidar_radar_fusion&quot;')">
     <let name="switch/filter/pointcloud" value="true"/>
     <let name="switch/detector/lidar_dnn" value="true"/>
     <let name="switch/detector/lidar_rule" value="true"/>
@@ -66,7 +66,7 @@
     <!-- radar_object_fusion_to_detected_object only supports radar detected objects -->
     <let name="switch/detector/irregular_object" value="false"/>
   </group>
-  <group scoped="false" if="$(eval '&quot;$(var mode)&quot;==&quot;lidar&quot;')">
+  <group scoped="false" if="$(eval '&quot;$(var perception_mode)&quot;==&quot;lidar&quot;')">
     <let name="switch/filter/pointcloud" value="true"/>
     <let name="switch/detector/lidar_dnn" value="true"/>
     <let name="switch/detector/lidar_rule" value="true"/>
@@ -106,7 +106,7 @@
     <push-ros-namespace namespace="radar"/>
     <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/filter/radar_filter.launch.xml"/>
   </group>
-  <group scoped="false" if="$(eval '&quot;$(var mode)&quot;==&quot;camera&quot;')">
+  <group scoped="false" if="$(eval '&quot;$(var perception_mode)&quot;==&quot;camera&quot;')">
     <!-- Camera-based bev detectors-->
     <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detector/camera_bev_detector.launch.xml">
       <arg name="output/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects"/>

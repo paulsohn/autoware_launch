@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <!-- Pipeline junctions -->
-  <arg name="mode" default="lidar">
+  <arg name="perception_mode" default="lidar">
     <choice value="camera"/>
     <choice value="camera_lidar_radar_fusion"/>
     <choice value="camera_lidar_fusion"/>
@@ -35,13 +35,13 @@
   <let name="input/detection07/objects" value="/perception/object_recognition/detection/camera_only/objects"/>
 
   <!-- camera lidar -->
-  <group scoped="false" if="$(eval '&quot;$(var mode)&quot;==&quot;camera_lidar_fusion&quot;')">
+  <group scoped="false" if="$(eval '&quot;$(var perception_mode)&quot;==&quot;camera_lidar_fusion&quot;')">
     <!-- radar far object is not used -->
     <let name="input/detection06/channel" value="none"/>
   </group>
 
   <!-- lidar radar -->
-  <group scoped="false" if="$(eval '&quot;$(var mode)&quot;==&quot;lidar_radar_fusion&quot;')">
+  <group scoped="false" if="$(eval '&quot;$(var perception_mode)&quot;==&quot;lidar_radar_fusion&quot;')">
     <!-- camera lidar fusion is not used -->
     <let name="input/detection03/channel" value="none"/>
     <!-- irregular object detector is not used -->
@@ -49,7 +49,7 @@
   </group>
 
   <!-- lidar -->
-  <group scoped="false" if="$(eval '&quot;$(var mode)&quot;==&quot;lidar&quot;')">
+  <group scoped="false" if="$(eval '&quot;$(var perception_mode)&quot;==&quot;lidar&quot;')">
     <!-- camera lidar detector is not used -->
     <let name="input/detection03/channel" value="none"/>
     <!-- irregular object detector is not used -->
