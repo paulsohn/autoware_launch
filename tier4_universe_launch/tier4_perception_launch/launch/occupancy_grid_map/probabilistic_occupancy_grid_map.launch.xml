@@ -6,12 +6,16 @@
     <choice value="multi_lidar_pointcloud_based"/>
   </arg>
 
+  <arg name="input/obstacle_pointcloud" default="/perception/obstacle_segmentation/single_frame/pointcloud"/>
+  <arg name="input_obstacle_pointcloud" default="false" description="subscribe obstacle pointcloud"/>
+  <arg name="input_obstacle_and_raw_pointcloud" default="true" description="subscribe both obstacle and raw pointcloud"/>
+
   <!-- Updater is binary_bayes_filter -->
 
   <!--pointcloud based method-->
   <group if="$(eval &quot;'$(var occupancy_grid_map/method)'=='pointcloud_based'&quot;)">
     <include file="$(find-pkg-share autoware_probabilistic_occupancy_grid_map)/launch/pointcloud_based_occupancy_grid_map.launch.py">
-      <arg name="input/obstacle_pointcloud" value="/perception/obstacle_segmentation/single_frame/pointcloud"/>
+      <arg name="input/obstacle_pointcloud" value="$(var input/obstacle_pointcloud)"/>
       <arg name="input/raw_pointcloud" value="/sensing/lidar/concatenated/pointcloud"/>
       <arg name="output" value="/perception/occupancy_grid_map/map"/>
       <arg name="use_intra_process" value="true"/>
@@ -27,7 +31,7 @@
   <!--laserscan based method-->
   <group if="$(eval &quot;'$(var occupancy_grid_map/method)'=='laserscan_based'&quot;)">
     <include file="$(find-pkg-share autoware_probabilistic_occupancy_grid_map)/launch/laserscan_based_occupancy_grid_map.launch.py">
-      <arg name="input/obstacle_pointcloud" value="/perception/obstacle_segmentation/single_frame/pointcloud"/>
+      <arg name="input/obstacle_pointcloud" value="$(var input/obstacle_pointcloud)"/>
       <arg name="input/raw_pointcloud" value="/sensing/lidar/concatenated/pointcloud"/>
       <arg name="output" value="/perception/occupancy_grid_map/map"/>
       <arg name="use_intra_process" value="true"/>
@@ -37,15 +41,15 @@
       <arg name="param_file" value="$(find-pkg-share autoware_launch_config)/config/perception/occupancy_grid_map/laserscan_based_occupancy_grid_map.param.yaml"/>
       <arg name="updater_type" value="binary_bayes_filter"/>
       <arg name="updater_param_file" value="$(find-pkg-share autoware_launch_config)/config/perception/occupancy_grid_map/binary_bayes_filter_updater.param.yaml"/>
-      <arg name="input_obstacle_pointcloud" value="false"/>
-      <arg name="input_obstacle_and_raw_pointcloud" value="true"/>
+      <arg name="input_obstacle_pointcloud" value="$(var input_obstacle_pointcloud)"/>
+      <arg name="input_obstacle_and_raw_pointcloud" value="$(var input_obstacle_and_raw_pointcloud)"/>
     </include>
   </group>
 
   <!--multi lidar pointclouds based method-->
   <group if="$(eval &quot;'$(var occupancy_grid_map/method)'=='multi_lidar_pointcloud_based'&quot;)">
     <include file="$(find-pkg-share autoware_probabilistic_occupancy_grid_map)/launch/multi_lidar_pointcloud_based_occupancy_grid_map.launch.py">
-      <arg name="input/obstacle_pointcloud" value="/perception/obstacle_segmentation/single_frame/pointcloud"/>
+      <arg name="input/obstacle_pointcloud" value="$(var input/obstacle_pointcloud)"/>
       <arg name="output" value="/perception/occupancy_grid_map/map"/>
       <arg name="use_intra_process" value="true"/>
       <arg name="use_multithread" value="true"/>
