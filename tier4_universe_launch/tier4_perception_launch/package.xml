@@ -41,21 +41,19 @@
   <exec_depend>autoware_perception_online_evaluator</exec_depend>
   <exec_depend>autoware_pointcloud_preprocessor</exec_depend>
   <exec_depend>autoware_probabilistic_occupancy_grid_map</exec_depend>
-  <exec_depend>autoware_radar_fusion_to_detected_object</exec_depend>
-  <exec_depend>autoware_radar_object_tracker</exec_depend>
   <exec_depend>autoware_raindrop_cluster_filter</exec_depend>
   <exec_depend>autoware_shape_estimation</exec_depend>
   <exec_depend>autoware_simpl_prediction</exec_depend>
   <exec_depend>autoware_simple_object_merger</exec_depend>
-  <exec_depend>autoware_tensorrt_bevdet</exec_depend>
   <exec_depend>autoware_tensorrt_yolox</exec_depend>
-  <exec_depend>autoware_tracking_object_merger</exec_depend>
   <exec_depend>autoware_traffic_light_arbiter</exec_depend>
+  <exec_depend>autoware_traffic_light_category_merger</exec_depend>
   <exec_depend>autoware_traffic_light_classifier</exec_depend>
   <exec_depend>autoware_traffic_light_fine_detector</exec_depend>
   <exec_depend>autoware_traffic_light_map_based_detector</exec_depend>
   <exec_depend>autoware_traffic_light_multi_camera_fusion</exec_depend>
   <exec_depend>autoware_traffic_light_occlusion_predictor</exec_depend>
+  <exec_depend>autoware_traffic_light_selector</exec_depend>
   <exec_depend>autoware_traffic_light_visualization</exec_depend>
   <exec_depend>pointcloud_to_laserscan</exec_depend>
   <exec_depend>topic_tools</exec_depend>
