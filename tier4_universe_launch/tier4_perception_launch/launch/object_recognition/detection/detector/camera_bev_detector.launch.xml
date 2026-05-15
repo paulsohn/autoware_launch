@@ -5,8 +5,7 @@
 
   <!-- Model parameters -->
   <arg name="data_path" default="$(env HOME)/autoware_data/ml_models" description="packages data and artifacts directory path"/>
-  <arg name="bevdet_model_name" default="bevdet_one_lt_d"/>
-  <arg name="bevdet_model_path" default="$(var data_path)/tensorrt_bevdet"/>
+
   <!-- BEVDet -->
   <group>
     <push-ros-namespace namespace="bevdet"/>
@@ -25,8 +24,8 @@
       <arg name="input/img_back_right/camera_info" value="/sensing/camera/camera5/camera_info"/>
       <arg name="output/boxes" value="$(var output/objects)"/>
       <arg name="data_path" value="$(var data_path)"/>
-      <arg name="model_name" value="$(var bevdet_model_name)"/>
-      <arg name="model_path" value="$(var bevdet_model_path)"/>
+      <arg name="model_name" value="bevdet_one_lt_d"/>
+      <arg name="model_path" value="$(var data_path)/tensorrt_bevdet"/>
     </include>
   </group>
 </launch>

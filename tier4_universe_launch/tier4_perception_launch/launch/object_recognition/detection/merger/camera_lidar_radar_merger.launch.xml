@@ -2,7 +2,6 @@
 <launch>
   <!-- Pipeline junctions -->
   <arg name="lidar_detection_model_type"/>
-  <arg name="use_irregular_object_detector"/>
 
   <arg name="input/lidar_ml/objects"/>
   <arg name="input/lidar_rule/objects"/>
@@ -22,8 +21,7 @@
   <let name="merger0/input/objects1" value="/perception/object_recognition/detection/irregular_object/objects"/>
   <let name="merger0/output/objects" value="$(var lidar_detection_model_type)_irregular_object_merger/objects"/>
 
-  <let name="merger1/input/objects0" value="$(var detected_object_roi_filter/output/objects)" unless="$(var use_irregular_object_detector)"/>
-  <let name="merger1/input/objects0" value="$(var merger0/output/objects)" if="$(var use_irregular_object_detector)"/>
+  <let name="merger1/input/objects0" value="$(var merger0/output/objects)"/>
   <let name="merger1/input/objects1" value="$(var input/lidar_rule/objects)"/>
   <let name="merger1/output/objects" value="$(var lidar_detection_model_type)_roi_cluster_fusion/objects"/>
 
@@ -63,7 +61,7 @@
   </group>
 
   <!-- merger: irregular_objects + ml_lidar -->
-  <group if="$(var use_irregular_object_detector)">
+  <group>
     <node pkg="autoware_simple_object_merger" exec="simple_object_merger_node" name="simple_object_merger" output="screen">
       <remap from="~/output/objects" to="$(var merger0/output/objects)"/>
       <param from="$(find-pkg-share autoware_simple_object_merger)/config/simple_object_merger.param.yaml" allow_substs="true"/>

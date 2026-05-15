@@ -2,30 +2,6 @@
 <launch>
   <!-- Pipeline junctions -->
   <arg name="lidar_detection_model_type"/>
-  <arg name="use_irregular_object_detector"/>
-
-  <arg name="input/lidar_ml/objects"/>
-  <arg name="input/lidar_rule/objects"/>
-  <arg name="input/detection_by_tracker/objects"/>
-  <arg name="output/objects" default="objects"/>
-
-  <!-- internal interfaces -->
-  <let name="detected_object_roi_filter/input/objects" value="$(var input/lidar_ml/objects)"/>
-  <let name="detected_object_roi_filter/output/objects" value="$(var lidar_detection_model_type)/roi_fusion/objects"/>
-
-  <let name="merger0/input/objects0" value="$(var detected_object_roi_filter/output/objects)"/>
-  <let name="merger0/input/objects1" value="/perception/object_recognition/detection/irregular_object/objects"/>
-  <let name="merger0/output/objects" value="$(var lidar_detection_model_type)_irregular_object_merger/objects"/>
-
-  <let name="merger1/input/objects0" value="$(var detected_object_roi_filter/output/objects)" unless="$(var use_irregular_object_detector)"/>
-  <let name="merger1/input/objects0" value="$(var merger0/output/objects)" if="$(var use_irregular_object_detector)"/>
-  <let name="merger1/input/objects1" value="$(var input/lidar_rule/objects)"/>
-
-  <let name="merger2/input/objects0" value="$(var merger1/output/objects)"/>
-  <let name="merger2/input/objects1" value="$(var input/detection_by_tracker/objects)"/>
-  <let name="merger2/output/objects" value="objects_before_filter"/>
-
-  <let name="filter/input/objects" value="$(var merger2/output/objects)"/>
 
   <!-- Detected object filter by ROI -->
   <group>
@@ -50,19 +26,22 @@
       <arg name="input/image4" value="/sensing/camera/camera4/image_raw"/>
       <arg name="input/image5" value="/sensing/camera/camera5/image_raw"/>
       <arg name="input/concatenation_info" value="/sensing/lidar/concatenated/pointcloud_info"/>
-      <arg name="input/objects" value="$(var detected_object_roi_filter/input/objects)"/>
-      <arg name="output/objects" value="$(var detected_object_roi_filter/output/objects)"/>
+      <arg name="input/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/validation/objects"/>
+      <arg name="output/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/roi_fusion/objects"/>
       <arg name="param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/image_projection_based_fusion/roi_detected_object_fusion.param.yaml"/>
     </include>
   </group>
 
   <!-- merger: irregular_objects + ml_lidar -->
-  <group if="$(var use_irregular_object_detector)">
+  <group>
     <node pkg="autoware_simple_object_merger" exec="simple_object_merger_node" name="simple_object_merger" output="screen">
-      <remap from="~/output/objects" to="$(var merger0/output/objects)"/>
+      <remap from="~/output/objects" to="/perception/object_recognition/detection/$(var lidar_detection_model_type)_irregular_object_merger/objects"/>
       <param from="$(find-pkg-share autoware_simple_object_merger)/config/simple_object_merger.param.yaml" allow_substs="true"/>
       <param name="update_rate_hz" value="10.0"/>
-      <param name="input_topics" value="[$(var merger0/input/objects0),$(var merger0/input/objects1)]"/>
+      <param
+        name="input_topics"
+        value="[/perception/object_recognition/detection/$(var lidar_detection_model_type)/roi_fusion/objects, /perception/object_recognition/detection/irregular_object/objects]"
+      />
     </node>
   </group>
 
@@ -73,9 +52,9 @@
   <group>
     <include file="$(find-pkg-share autoware_object_merger)/launch/object_association_merger.launch.xml">
       <arg name="node_name" value="object_association_merger_alpha"/>
-      <arg name="input/object0" value="$(var merger1/input/objects0)"/>
-      <arg name="input/object1" value="$(var merger1/input/objects1)"/>
-      <arg name="output/object" value="$(var merger1/output/objects)"/>
+      <arg name="input/object0" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)_irregular_object_merger/objects"/>
+      <arg name="input/object1" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/unfiltered/objects"/>
+      <arg name="output/object" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)_roi_cluster_fusion/objects"/>
       <arg name="priority_mode" value="0"/>
       <arg name="data_association_matrix_path" value="$(var data_association_matrix_path)"/>
       <arg name="distance_threshold_list_path" value="$(var distance_threshold_list_path)"/>
@@ -90,9 +69,9 @@
   <group>
     <include file="$(find-pkg-share autoware_object_merger)/launch/object_association_merger.launch.xml">
       <arg name="node_name" value="object_association_merger_beta"/>
-      <arg name="input/object0" value="$(var merger2/input/objects0)"/>
-      <arg name="input/object1" value="$(var merger2/input/objects1)"/>
-      <arg name="output/object" value="$(var merger2/output/objects)"/>
+      <arg name="input/object0" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)_roi_cluster_fusion/objects"/>
+      <arg name="input/object1" value="/perception/object_recognition/detection/detection_by_tracker/objects"/>
+      <arg name="output/object" value="/perception/object_recognition/detection/objects_before_filter"/>
       <arg name="priority_mode" value="0"/>
       <arg name="data_association_matrix_path" value="$(var data_association_matrix_path)"/>
       <arg name="distance_threshold_list_path" value="$(var distance_threshold_list_path)"/>
@@ -102,8 +81,8 @@
   <!-- Filter -->
   <group>
     <include file="$(find-pkg-share autoware_detected_object_validation)/launch/object_lanelet_filter.launch.xml">
-      <arg name="input/object" value="$(var filter/input/objects)"/>
-      <arg name="output/object" value="$(var output/objects)"/>
+      <arg name="input/object" value="/perception/object_recognition/detection/objects_before_filter"/>
+      <arg name="output/object" value="/perception/object_recognition/detection/objects"/>
       <arg name="filtering_range_param" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/object_filter/object_lanelet_filter.param.yaml"/>
     </include>
   </group>

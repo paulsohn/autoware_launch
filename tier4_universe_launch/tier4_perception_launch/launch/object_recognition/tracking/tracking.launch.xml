@@ -1,66 +1,27 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- Pipeline junctions -->
-  <arg name="perception_mode" default="lidar">
-    <choice value="camera"/>
-    <choice value="camera_lidar_radar_fusion"/>
-    <choice value="camera_lidar_fusion"/>
-    <choice value="lidar_radar_fusion"/>
-    <choice value="lidar"/>
-  </arg>
-
-  <!-- External interface -->
   <arg name="lidar_detection_model_type" default="centerpoint"/>
-
-  <!-- Object list for multi-channel tracker merger -->
-  <let name="input/detection01/channel" value="lidar_$(var lidar_detection_model_type)"/>
-  <let name="input/detection01/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/validation/objects"/>
-
-  <let name="input/detection02/channel" value="none"/>
-  <let name="input/detection02/objects" value="/perception/object_recognition/detection/centerpoint_short_range/objects"/>
-
-  <let name="input/detection03/channel" value="camera_lidar_fusion"/>
-  <let name="input/detection03/objects" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/objects"/>
-
-  <let name="input/detection04/channel" value="irregular_object_detector"/>
-  <let name="input/detection04/objects" value="/perception/object_recognition/detection/irregular_object/objects"/>
-
-  <let name="input/detection05/channel" value="detection_by_tracker"/>
-  <let name="input/detection05/objects" value="/perception/object_recognition/detection/detection_by_tracker/objects"/>
-
-  <let name="input/detection06/channel" value="radar"/>
-  <let name="input/detection06/objects" value="/perception/object_recognition/detection/radar/far_objects"/>
-
-  <let name="input/detection07/channel" value="camera_streampetr"/>
-  <let name="input/detection07/objects" value="/perception/object_recognition/detection/camera_only/objects"/>
-
-  <!-- camera lidar -->
-  <group scoped="false" if="$(eval '&quot;$(var perception_mode)&quot;==&quot;camera_lidar_fusion&quot;')">
-    <!-- radar far object is not used -->
-    <let name="input/detection06/channel" value="none"/>
-  </group>
-
-  <!-- lidar radar -->
-  <group scoped="false" if="$(eval '&quot;$(var perception_mode)&quot;==&quot;lidar_radar_fusion&quot;')">
-    <!-- camera lidar fusion is not used -->
-    <let name="input/detection03/channel" value="none"/>
-    <!-- irregular object detector is not used -->
-    <let name="input/detection04/channel" value="none"/>
-  </group>
-
-  <!-- lidar -->
-  <group scoped="false" if="$(eval '&quot;$(var perception_mode)&quot;==&quot;lidar&quot;')">
-    <!-- camera lidar detector is not used -->
-    <let name="input/detection03/channel" value="none"/>
-    <!-- irregular object detector is not used -->
-    <let name="input/detection04/channel" value="none"/>
-    <!-- radar far object is not used -->
-    <let name="input/detection06/channel" value="none"/>
-  </group>
 
   <!-- Multi object tracking -->
   <include file="$(find-pkg-share autoware_multi_object_tracker)/launch/multi_object_tracker.launch.xml">
-    <!-- input/detectionNN/objects and input/detectionNN/channel implicitly passed -->
+    <arg name="input/detection01/channel" value="lidar_$(var lidar_detection_model_type)"/>
+    <arg name="input/detection01/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/validation/objects"/>
+
+    <arg name="input/detection02/channel" value="camera_lidar_fusion"/>
+    <arg name="input/detection02/objects" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/objects"/>
+
+    <arg name="input/detection03/channel" value="irregular_object_detector"/>
+    <arg name="input/detection03/objects" value="/perception/object_recognition/detection/irregular_object/objects"/>
+
+    <arg name="input/detection04/channel" value="detection_by_tracker"/>
+    <arg name="input/detection04/objects" value="/perception/object_recognition/detection/detection_by_tracker/objects"/>
+
+    <arg name="input/detection05/channel" value="radar"/>
+    <arg name="input/detection05/objects" value="/perception/object_recognition/detection/radar/far_objects"/>
+
+    <arg name="input/detection06/channel" value="camera_streampetr"/>
+    <arg name="input/detection06/objects" value="/perception/object_recognition/detection/camera_only/objects"/>
+
     <arg name="output/objects" value="$(var output/objects)"/>
     <arg name="output/merged_objects" value="/perception/object_recognition/tracking/merged_objects"/>
     <arg name="data_association_matrix_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/tracking/multi_object_tracker/data_association_matrix.param.yaml"/>

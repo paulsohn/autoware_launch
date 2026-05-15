@@ -11,13 +11,6 @@
   <let name="lidar_detection_model_name" value="pointpainting" if="$(eval &quot;'pointpainting'=='$(var lidar_detection_model_type)' and ''=='$(var lidar_detection_model_name)'&quot;)"/>
 
   <!-- Common parameters -->
-  <arg name="perception_mode" default="camera_lidar_fusion">
-    <choice value="camera"/>
-    <choice value="camera_lidar_radar_fusion"/>
-    <choice value="camera_lidar_fusion"/>
-    <choice value="lidar_radar_fusion"/>
-    <choice value="lidar"/>
-  </arg>
   <arg name="data_path" default="$(env HOME)/autoware_data/ml_models" description="packages data and artifacts directory path"/>
 
   <!-- traffic light recognition options to switch launch function/module -->
@@ -52,7 +45,6 @@
       <group>
         <push-ros-namespace namespace="detection"/>
         <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detection.launch.xml">
-          <arg name="perception_mode" value="$(var perception_mode)"/>
           <arg name="lidar_detection_model_type" value="$(var lidar_detection_model_type)"/>
           <arg name="lidar_detection_model_name" value="$(var lidar_detection_model_name)"/>
         </include>
@@ -62,7 +54,6 @@
       <group>
         <push-ros-namespace namespace="tracking"/>
         <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/tracking/tracking.launch.xml">
-          <arg name="perception_mode" value="$(var perception_mode)"/>
           <arg name="lidar_detection_model_type" value="$(var lidar_detection_model_type)"/>
         </include>
       </group>

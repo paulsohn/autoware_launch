@@ -11,43 +11,7 @@
   </arg>
   <arg name="lidar_detection_model_name" description="options: `bevfusion_lidar`, `centerpoint`, `centerpoint_tiny`, `centerpoint_sigma`, `pointpainting`, `transfusion` (non-exhaustive)"/>
 
-  <arg name="output/rule_detector/objects"/>
-
-  <!-- Internal interfaces -->
-  <let name="pointpainting/input/pointcloud" value="/sensing/lidar/concatenated/pointcloud"/>
-  <let name="pointpainting/output/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects"/>
-
-  <let name="segmentation_based_filtered/input/pointcloud" value="/perception/object_recognition/detection/pointcloud_map_filtered/pointcloud"/>
-  <let name="segmentation_based_filtered/output/pointcloud" value="/perception/object_recognition/detection/segmentation_based_filtered/pointcloud"/>
-
-  <let name="euclidean_cluster/input/pointcloud" value="/perception/object_recognition/detection/pointcloud_map_filtered/pointcloud"/>
-  <let name="euclidean_cluster/output/clusters" value="/perception/object_recognition/detection/clustering/clusters"/>
-  <let name="shape_estimation1/input/clusters" value="$(var euclidean_cluster/output/clusters)"/>
-  <let name="shape_estimation1/output/objects" value="/perception/object_recognition/detection/clustering/objects_with_feature"/>
-
-  <let name="roi_cluster_fusion/input/clusters" value="$(var euclidean_cluster/output/clusters)"/>
-  <let name="roi_cluster_fusion/output/clusters" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/clusters"/>
-  <let name="low_intensity_cluster_filter/input/clusters" value="$(var roi_cluster_fusion/output/clusters)"/>
-  <let name="low_intensity_cluster_filter/output/clusters" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/filtered/clusters"/>
-
-  <let name="shape_estimation2/input/clusters" value="$(var low_intensity_cluster_filter/output/clusters)"/>
-  <let name="shape_estimation2/output/objects" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/objects_with_feature"/>
-  <let name="detected_object_feature_remover/input/objects_with_feature" value="$(var shape_estimation2/output/objects)"/>
-  <let name="detected_object_feature_remover/output/objects" value="$(var output/rule_detector/objects)"/>
-
-  <arg name="enable_2d_detection" default="false" description="true: when 2d detection yolox model run the same machine, false: when it run in separate machine"/>
-
   <include file="$(find-pkg-share autoware_agnocast_wrapper)/launch/agnocast_env.launch.xml"/>
-
-  <include file="$(find-pkg-share tier4_perception_launch)/launch/object_recognition/detection/detector/camera_2d_detector.launch.xml" if="$(var enable_2d_detection)">
-    <arg name="image_raw0" value="/sensing/camera/camera0/image_raw"/>
-    <arg name="image_raw1" value="/sensing/camera/camera1/image_raw"/>
-    <arg name="image_raw2" value="/sensing/camera/camera2/image_raw"/>
-    <arg name="image_raw3" value="/sensing/camera/camera3/image_raw"/>
-    <arg name="image_raw4" value="/sensing/camera/camera4/image_raw"/>
-    <arg name="image_raw5" value="/sensing/camera/camera5/image_raw"/>
-    <arg name="image_number" value="6"/>
-  </include>
 
   <!-- PointPainting -->
   <group if="$(eval &quot;'$(var lidar_detection_model_type)'=='pointpainting'&quot;)">
@@ -72,9 +36,9 @@
       <arg name="input/image3" value="/sensing/camera/camera3/image_raw"/>
       <arg name="input/image4" value="/sensing/camera/camera4/image_raw"/>
       <arg name="input/image5" value="/sensing/camera/camera5/image_raw"/>
-      <arg name="input/pointcloud" value="$(var pointpainting/input/pointcloud)"/>
+      <arg name="input/pointcloud" value="/sensing/lidar/concatenated/pointcloud"/>
       <arg name="input/concatenation_info" value="/sensing/lidar/concatenated/pointcloud_info"/>
-      <arg name="output/objects" value="$(var pointpainting/output/objects)"/>
+      <arg name="output/objects" value="/perception/object_recognition/detection/$(var lidar_detection_model_type)/objects"/>
 
       <arg name="model_name" value="$(var lidar_detection_model_name)"/>
       <arg name="model_path" value="$(var data_path)/image_projection_based_fusion"/>
@@ -87,24 +51,13 @@
     </include>
   </group>
 
-  <!-- Image_segmentation based filter, apply for camera0 only-->
-  <group>
-    <include file="$(find-pkg-share autoware_image_projection_based_fusion)/launch/segmentation_pointcloud_fusion.launch.py" if="$(var use_image_segmentation_based_filter)">
-      <arg name="input/concatenation_info" value="/sensing/lidar/concatenated/pointcloud_info"/>
-      <arg name="input/pointcloud" value="$(var segmentation_based_filtered/input/pointcloud)"/>
-      <arg name="output/pointcloud" value="$(var segmentation_based_filtered/output/pointcloud)"/>
-      <arg name="fusion_camera_ids" value="$[0,2,4]"/>
-      <arg name="sync_param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/image_projection_based_fusion/fusion_common.param.yaml"/>
-    </include>
-  </group>
-
   <!-- Clustering -->
   <group>
     <push-ros-namespace namespace="clustering"/>
     <group>
       <include file="$(find-pkg-share autoware_euclidean_cluster)/launch/voxel_grid_based_euclidean_cluster.launch.xml">
-        <arg name="input_pointcloud" value="$(var euclidean_cluster/input/pointcloud)"/>
-        <arg name="output_clusters" value="$(var euclidean_cluster/output/clusters)"/>
+        <arg name="input_pointcloud" value="/perception/object_recognition/detection/pointcloud_map_filtered/pointcloud"/>
+        <arg name="output_clusters" value="/perception/object_recognition/detection/clustering/clusters"/>
         <arg name="use_low_height_cropbox" value="false"/>
         <arg name="use_pointcloud_container" value="false"/>
         <arg
@@ -117,8 +70,8 @@
     <!-- shape_estimation 1 -->
     <node pkg="autoware_shape_estimation" exec="shape_estimation_node" name="shape_estimation" output="screen">
       <env name="LD_PRELOAD" value="$(var ld_preload_value)"/>
-      <remap from="input" to="$(var shape_estimation1/input/clusters)"/>
-      <remap from="objects" to="$(var shape_estimation1/output/objects)"/>
+      <remap from="input" to="/perception/object_recognition/detection/clustering/clusters"/>
+      <remap from="objects" to="/perception/object_recognition/detection/clustering/objects_with_feature"/>
       <param name="model_path" value="$(var data_path)/shape_estimation/pointnet.onnx"/>
       <param from="$(find-pkg-share autoware_shape_estimation)/config/shape_estimation.param.yaml" allow_substs="true"/>
     </node>
@@ -150,8 +103,8 @@
           <arg name="input/image4" value="/sensing/camera/camera4/image_raw"/>
           <arg name="input/image5" value="/sensing/camera/camera5/image_raw"/>
           <arg name="input/concatenation_info" value="/sensing/lidar/concatenated/pointcloud_info"/>
-          <arg name="input/clusters" value="$(var roi_cluster_fusion/input/clusters)"/>
-          <arg name="output/clusters" value="$(var roi_cluster_fusion/output/clusters)"/>
+          <arg name="input/clusters" value="/perception/object_recognition/detection/clustering/clusters"/>
+          <arg name="output/clusters" value="/perception/object_recognition/detection/clustering/camera_lidar_fusion/clusters"/>
           <arg name="param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/detection/image_projection_based_fusion/roi_cluster_fusion.param.yaml"/>
         </include>
       </group>
@@ -159,16 +112,16 @@
       <!-- low_intensity_cluster_filter -->
       <node pkg="autoware_raindrop_cluster_filter" exec="low_intensity_cluster_filter_node" name="low_intensity_cluster_filter_node" output="screen">
         <env name="LD_PRELOAD" value="$(var ld_preload_value)"/>
-        <remap from="input/objects" to="$(var low_intensity_cluster_filter/input/clusters)"/>
-        <remap from="output/objects" to="$(var low_intensity_cluster_filter/output/clusters)"/>
+        <remap from="input/objects" to="/perception/object_recognition/detection/clustering/camera_lidar_fusion/clusters"/>
+        <remap from="output/objects" to="/perception/object_recognition/detection/clustering/camera_lidar_fusion/filtered/clusters"/>
         <param name="input_obstacle_pointcloud" value="false"/>
         <param from="$(find-pkg-share autoware_raindrop_cluster_filter)/config/low_intensity_cluster_filter.param.yaml"/>
       </node>
 
       <node pkg="autoware_shape_estimation" exec="shape_estimation_node" name="shape_estimation" output="screen">
         <env name="LD_PRELOAD" value="$(var ld_preload_value)"/>
-        <remap from="input" to="$(var shape_estimation2/input/clusters)"/>
-        <remap from="objects" to="$(var shape_estimation2/output/objects)"/>
+        <remap from="input" to="/perception/object_recognition/detection/clustering/camera_lidar_fusion/filtered/clusters"/>
+        <remap from="objects" to="/perception/object_recognition/detection/clustering/camera_lidar_fusion/objects_with_feature"/>
         <param name="model_path" value="$(var data_path)/shape_estimation/pointnet.onnx"/>
         <param from="$(find-pkg-share autoware_shape_estimation)/config/shape_estimation.param.yaml" allow_substs="true"/>
       </node>
@@ -176,8 +129,8 @@
       <!-- convert DynamicObjectsWithFeatureArray to DynamicObjects -->
       <node pkg="autoware_detected_object_feature_remover" exec="detected_object_feature_remover_node" name="detected_object_feature_remover" output="screen">
         <env name="LD_PRELOAD" value="$(var ld_preload_value)"/>
-        <remap from="~/input" to="$(var detected_object_feature_remover/input/objects_with_feature)"/>
-        <remap from="~/output" to="$(var detected_object_feature_remover/output/objects)"/>
+        <remap from="~/input" to="/perception/object_recognition/detection/clustering/camera_lidar_fusion/objects_with_feature"/>
+        <remap from="~/output" to="/perception/object_recognition/detection/clustering/camera_lidar_fusion/unfiltered/objects"/>
         <param name="run_convex_hull_conversion" value="false"/>
       </node>
     </group>
