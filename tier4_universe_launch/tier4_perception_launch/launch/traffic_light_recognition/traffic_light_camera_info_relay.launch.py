@@ -24,21 +24,17 @@ import yaml
 
 
 def create_traffic_light_camera_info_relay(namespace):
-    relay_node = Node(
-        package="topic_tools",
-        executable="relay",
-        name="traffic_light_camera_info_relay",
-        arguments=[f"/sensing/camera/{namespace}/camera_info", "camera_info"],
-    )
-
-    group = GroupAction(
+    return GroupAction(
         [
             PushRosNamespace(namespace),
-            relay_node,
+            Node(
+                package="topic_tools",
+                executable="relay",
+                name="traffic_light_camera_info_relay",
+                arguments=[f"/sensing/camera/{namespace}/camera_info", "camera_info"],
+            ),
         ]
     )
-
-    return group
 
 
 def launch_setup(context, *args, **kwargs):

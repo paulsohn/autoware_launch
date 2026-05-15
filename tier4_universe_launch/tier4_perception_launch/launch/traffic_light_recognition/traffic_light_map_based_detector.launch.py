@@ -27,9 +27,6 @@ import yaml
 
 
 def create_traffic_light_map_based_detector(namespace, context):
-    package = FindPackageShare("autoware_traffic_light_map_based_detector")
-    include = PathJoinSubstitution([package, "launch/traffic_light_map_based_detector.launch.xml"])
-
     output_rois = (
         "rough/rois"
         if IfCondition(LaunchConfiguration("use_high_accuracy_detection")).evaluate(context)
@@ -37,9 +34,9 @@ def create_traffic_light_map_based_detector(namespace, context):
     )
 
     arguments = {
-        "input/vector_map": LaunchConfiguration("input/vector_map"),
+        "input/vector_map": "/map/vector_map",
         "input/camera_info": f"/sensing/camera/{namespace}/camera_info",
-        "input/route": LaunchConfiguration("input/route"),
+        "input/route": "/planning/mission_planning/route",
         "expect/rois": "expect/rois",
         "output/rois": output_rois,
         "param_path": [
@@ -48,15 +45,22 @@ def create_traffic_light_map_based_detector(namespace, context):
         ],
     }.items()
 
-    group = GroupAction(
+    return GroupAction(
         [
-            PushRosNamespace(namespace),
-            PushRosNamespace("detection"),
-            IncludeLaunchDescription(include, launch_arguments=arguments),
+            PushRosNamespace(f"{namespace}/detection"),
+            IncludeLaunchDescription(
+                [
+                    PathJoinSubstitution(
+                        [
+                            FindPackageShare("autoware_traffic_light_map_based_detector"),
+                            "launch/traffic_light_map_based_detector.launch.xml",
+                        ]
+                    )
+                ],
+                launch_arguments=arguments,
+            ),
         ]
     )
-
-    return group
 
 
 def launch_setup(context, *args, **kwargs):
@@ -92,8 +96,6 @@ def generate_launch_description():
         )
 
     add_launch_arg("camera_namespaces")
-    add_launch_arg("input/vector_map")
-    add_launch_arg("input/route")
     add_launch_arg("use_high_accuracy_detection")
 
     return launch.LaunchDescription(
