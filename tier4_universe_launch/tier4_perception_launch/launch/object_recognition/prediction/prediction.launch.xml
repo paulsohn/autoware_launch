@@ -4,7 +4,6 @@
     <choice value="map_based"/>
     <choice value="simpl"/>
   </arg>
-  <arg name="input/objects" default="/perception/object_recognition/tracking/objects"/>
 
   <group>
     <set_remap from="objects" to="/perception/object_recognition/objects"/>
@@ -12,14 +11,14 @@
     <group if="$(eval &quot; '$(var prediction_model_type)' == 'map_based'&quot;)">
       <include file="$(find-pkg-share autoware_map_based_prediction)/launch/map_based_prediction.launch.xml">
         <arg name="output_topic" value="/perception/object_recognition/objects"/>
-        <arg name="input_topic" value="$(var input/objects)"/>
+        <arg name="input_topic" value="/perception/object_recognition/tracking/objects"/>
         <arg name="param_path" value="$(find-pkg-share autoware_launch_config)/config/perception/object_recognition/prediction/map_based_prediction.param.yaml"/>
       </include>
     </group>
     <!-- simpl -->
     <group if="$(eval &quot; '$(var prediction_model_type)' == 'simpl'&quot;)">
       <include file="$(find-pkg-share autoware_simpl_prediction)/launch/simpl.launch.xml">
-        <arg name="input/objects" value="$(var input/objects)"/>
+        <arg name="input/objects" value="/perception/object_recognition/tracking/objects"/>
         <arg name="output/objects" value="/perception/object_recognition/objects"/>
       </include>
     </group>
