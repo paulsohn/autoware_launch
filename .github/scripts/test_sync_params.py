@@ -294,8 +294,22 @@ perception: []
         self.assertIn("#   ros__parameters:", section)
         self.assertIn("#     foo: bar", section)
 
+    def test_build_embedded_original_section_escapes_launch_substitutions(self) -> None:
+        source_body = """/**:\n  ros__parameters:\n    param1: $(var myarg)\n"""
+        section = build_embedded_original_section(source_body)
+        self.assertIn("#     param1: $\\(var myarg)", section)
+        self.assertNotIn("#     param1: $(var myarg)", section)
+
     def test_extract_embedded_original_from_variant_text_roundtrip(self) -> None:
         source_body = """/**:\n  ros__parameters:\n    foo: bar\n"""
+        variant_text = """# header\n""" + build_embedded_original_section(source_body)
+        extracted = extract_embedded_original_from_variant_text(variant_text)
+        self.assertEqual(extracted, source_body)
+
+    def test_extract_embedded_original_from_variant_text_unescapes_launch_substitutions(
+        self,
+    ) -> None:
+        source_body = """/**:\n  ros__parameters:\n    param1: $(var myarg)\n"""
         variant_text = """# header\n""" + build_embedded_original_section(source_body)
         extracted = extract_embedded_original_from_variant_text(variant_text)
         self.assertEqual(extracted, source_body)

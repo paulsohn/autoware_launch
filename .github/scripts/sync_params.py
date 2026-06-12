@@ -1071,7 +1071,15 @@ def build_embedded_original_section(source_body: str) -> str:
         returns a string containing "# ###### ORIGINAL (DO NOT EDIT) ######"
     """
     lines = source_body.splitlines()
-    commented_lines = [f"# {line}" if line else "#" for line in lines]
+    # Prevent launch substitution parsing of commented footer content.
+    # We escape the '$(' token in footer text and restore it when de-commenting.
+    commented_lines = []
+    for line in lines:
+        if line:
+            escaped_line = line.replace("$(", "$\\(")
+            commented_lines.append(f"# {escaped_line}")
+        else:
+            commented_lines.append("#")
     section = ["", f"# {ORIGINAL_PIVOT}", *commented_lines]
     return "\n".join(section) + "\n"
 
@@ -1127,7 +1135,7 @@ def extract_embedded_original_from_variant_text(text: str) -> str | None:
             reconstructed.append("")
             continue
         if line.startswith("# "):
-            reconstructed.append(line[2:])
+            reconstructed.append(line[2:].replace("$\\(", "$("))
             continue
         if line.strip() == "":
             reconstructed.append("")
